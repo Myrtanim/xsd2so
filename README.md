@@ -1,6 +1,6 @@
 # Xsd2So #
 
-This provides a tool generate Unity ScriptableObjects from an XSD and also provides parsing capabilities, so you can easily parse the content of a matching XML into the ScriptableObject.
+This provides a tool to generate Unity ScriptableObjects from an XSD and also provides parsing capabilities, so you can easily parse the content of a matching XML into the ScriptableObject.
 
 So this projects tries to fuse XML data binding with Unity's native serialization capabilities.
 
