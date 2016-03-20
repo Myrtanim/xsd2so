@@ -6,8 +6,8 @@ So this projects tries to fuse XML data binding with Unity's native serializatio
 
 ### What is this repository for? ###
 
-* ScriptableObject code generator from an XSD
-* code generator to convert parsed XML data to the ScriptableObject data
+* generate code from XSD to Unity's ScriptableObject
+* also generates parsing of XML data to a ScriptableObject instance
 * 0.0.1
 
 ### How do I get set up? ###
