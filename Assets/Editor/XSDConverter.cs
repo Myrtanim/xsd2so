@@ -34,13 +34,12 @@ namespace Xsd2So
         public XmlSchemaElement XsdType { get; set; }
     }
 
-    class ModifiableTypeDuplicateComparer : IEqualityComparer<DataRepresentation>
+    class ModifiableRepresentationDuplicateComparer : IEqualityComparer<DataRepresentation>
     {
         public bool Equals(DataRepresentation x, DataRepresentation y)
         {
-            if( x.CodeType == y.CodeType)
+            if (x.TypeMapping.ElementName == y.TypeMapping.ElementName)
             {
-                Debug.Log("ModifiableTypeDuplicateComparer: DUPLICATE");
                 return true;
             }
             return false;
@@ -48,7 +47,7 @@ namespace Xsd2So
 
         public int GetHashCode(DataRepresentation obj)
         {
-            return obj.GetHashCode();
+            return obj.TypeMapping.ElementName.GetHashCode();
         }
     }
 
@@ -77,7 +76,7 @@ namespace Xsd2So
         public static void Convert()
         {
             // Load XSD as text file
-            var path = Application.dataPath + "/XSD/shared.xsd";
+            var path = Application.dataPath + "/XSD/test.xsd";
             var content = File.ReadAllText(path);
 
             // Parse Xsd to schema code representation
@@ -120,33 +119,33 @@ namespace Xsd2So
             // Export all xsd type mappings to the CodeDOM
             CodeNamespace codeNamespace = new CodeNamespace("Generated");
             XmlCodeExporter codeExporter = new XmlCodeExporter(codeNamespace);
+            var modifiableTypes = new List<DataRepresentation>();
             foreach (var rep in typeList)
             {
                 codeExporter.ExportTypeMapping(rep.TypeMapping);
                 AssociateXsdTypeWithCodeType(rep, codeNamespace);
-                if (rep.CodeType == null)
-                    Debug.LogError("Can't find code type for xsd type " + rep.TypeMapping.TypeName + " (element name '" + rep.TypeMapping.ElementName + "')");
+                if (rep.CodeType != null)
+                {
+                    modifiableTypes.Add(rep);
+                }
             }
 
             foreach (var rep in elementList)
             {
                 codeExporter.ExportTypeMapping(rep.TypeMapping);
                 AssociateXsdTypeWithCodeType(rep, codeNamespace);
-                if (rep.CodeType == null)
-                    Debug.LogError("Can't find code type for xsd type " + rep.TypeMapping.TypeName + "(element name '" + rep.TypeMapping.ElementName + "')");
+                if (rep.CodeType != null)
+                {
+                    modifiableTypes.Add(rep);
+                }
             }
 
-            // Create list of modifiable types, since some xsd types/elements might not have a code type representation (e.g. because they are arrays)
-            var modifiableTypes = new List<DataRepresentation>();
-            modifiableTypes.AddRange(typeList.FindAll(rep => rep.CodeType != null).Cast<DataRepresentation>());
-            modifiableTypes.AddRange(elementList.FindAll(rep => rep.CodeType != null).Cast<DataRepresentation>());
-
-            var userModifiableTypes = modifiableTypes.Distinct(new ModifiableTypeDuplicateComparer());
+            var userModifiableTypes = modifiableTypes.Distinct(new ModifiableRepresentationDuplicateComparer());
 
             Assert.AreEqual(codeNamespace.Types.Count, userModifiableTypes.Count());
 
             // Modify types
-            RemoveAttributes(codeNamespace);
+            RunCodeModifiers(codeNamespace, userModifiableTypes);
 
             // Check for invalid characters in identifiers
             //CodeGenerator.ValidateIdentifiers(codeNamespace); // no implemented in Unity's Mono, has to be handwritten
@@ -167,6 +166,23 @@ namespace Xsd2So
 
             // Refresh Unity to compile everything
             AssetDatabase.Refresh();
+        }
+
+        private static void RunCodeModifiers(CodeNamespace codeNamespace, IEnumerable<DataRepresentation> userModifiableTypes)
+        {
+            var  createSo = new ScriptableObjectGenerator();
+            
+            foreach(var modableType in userModifiableTypes)
+            {
+                // 1. create a new namespace, which is accessible for non-editor code
+                // 2. for all Xsd types
+                //    a) generate serializable type
+                //    b) add serializable type to new namespace
+                //    c) generate content-transfering method to copy Xsd type data to SO type data (e.g. "XsdType.Copy(soType)"
+                //
+                // Context object necessary. It should contain all code namespaces (Xsd code namespace, SO code namespace,
+                // user defined code namespaces), the data representation list and possible other stuff.
+            }
         }
 
         private static void AssociateXsdTypeWithCodeType(DataRepresentation rep, CodeNamespace codeNamespace)
