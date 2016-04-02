@@ -79,22 +79,15 @@ namespace Xsd2So
             var path = Application.dataPath + "/XSD/test.xsd";
             var content = File.ReadAllText(path);
 
-            // Parse Xsd to schema code representation
-            XmlSchema xsd;
-            using (var stream = new StringReader(content))
-            {
-                xsd = XmlSchema.Read(stream, null);
-            }
+            var context = new GenerationContext("Exmaple.Generated.Editor", "Example.Generated");
 
-            // Compile Xsd
-            XmlSchemas xsds = new XmlSchemas();
-            xsds.Add(xsd);
-            xsds.Compile(null, true);
+            // Parse Xsd to schema code representation
+            context.XsdConfig.ProcessXsd(content);
 
             // Generate type mapping for all Xsd types.
-            XmlSchemaImporter schemaImporter = new XmlSchemaImporter(xsds);
-            var typeList = new List<DataTypeRepresentation>(xsd.SchemaTypes.Values.Count);
-            foreach (XmlSchemaType schemaType in xsd.SchemaTypes.Values)
+            XmlSchemaImporter schemaImporter = new XmlSchemaImporter(context.XsdConfig.XsdSchemas);
+            var typeList = new List<DataTypeRepresentation>(context.XsdConfig.XsdSchema.SchemaTypes.Values.Count);
+            foreach (XmlSchemaType schemaType in context.XsdConfig.XsdSchema.SchemaTypes.Values)
             {
                 var type = schemaImporter.ImportSchemaType(schemaType.QualifiedName);
                 var typeRep = new DataTypeRepresentation();
@@ -105,8 +98,8 @@ namespace Xsd2So
             }
 
             // Generate type mapping for all Xsd elements.
-            var elementList = new List<DataElementRepresentation>(xsd.Elements.Values.Count);
-            foreach (XmlSchemaElement schemaElement in xsd.Elements.Values)
+            var elementList = new List<DataElementRepresentation>(context.XsdConfig.XsdSchema.Elements.Values.Count);
+            foreach (XmlSchemaElement schemaElement in context.XsdConfig.XsdSchema.Elements.Values)
             {
                 var type = schemaImporter.ImportTypeMapping(schemaElement.QualifiedName);
                 var typeRep = new DataElementRepresentation();
@@ -117,7 +110,7 @@ namespace Xsd2So
             }
 
             // Export all xsd type mappings to the CodeDOM
-            CodeNamespace codeNamespace = new CodeNamespace("Generated");
+            CodeNamespace codeNamespace = context.XmlCode;
             XmlCodeExporter codeExporter = new XmlCodeExporter(codeNamespace);
             var modifiableTypes = new List<DataRepresentation>();
             foreach (var rep in typeList)
