@@ -133,12 +133,12 @@ namespace Xsd2So
                 }
             }
 
-            var userModifiableTypes = modifiableTypes.Distinct(new ModifiableRepresentationDuplicateComparer());
+            context.XsdCodeMapping = modifiableTypes.Distinct(new ModifiableRepresentationDuplicateComparer());
 
-            Assert.AreEqual(codeNamespace.Types.Count, userModifiableTypes.Count());
+            Assert.AreEqual(codeNamespace.Types.Count, context.XsdCodeMapping.Count());
 
             // Modify types
-            RunCodeModifiers(codeNamespace, userModifiableTypes);
+            RunCodeModifiers(codeNamespace, context);
 
             // Check for invalid characters in identifiers
             //CodeGenerator.ValidateIdentifiers(codeNamespace); // no implemented in Unity's Mono, has to be handwritten
@@ -161,11 +161,11 @@ namespace Xsd2So
             AssetDatabase.Refresh();
         }
 
-        private static void RunCodeModifiers(CodeNamespace codeNamespace, IEnumerable<DataRepresentation> userModifiableTypes)
+        private static void RunCodeModifiers(CodeNamespace codeNamespace, GenerationContext context)
         {
             var  createSo = new ScriptableObjectGenerator();
             
-            foreach(var modableType in userModifiableTypes)
+            foreach(var modableType in context.XsdCodeMapping)
             {
                 // 1. create a new namespace, which is accessible for non-editor code
                 // 2. for all Xsd types
