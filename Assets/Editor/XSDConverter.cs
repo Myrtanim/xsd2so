@@ -145,17 +145,27 @@ namespace Xsd2So
 
             // output the C# code
             CSharpCodeProvider codeProvider = new CSharpCodeProvider();
+            var codeGenOptions = new CodeGeneratorOptions();
 
-            StringBuilder code;
+            StringBuilder xmlCode;
             using (StringWriter writer = new StringWriter())
             {
-                codeProvider.GenerateCodeFromNamespace(codeNamespace, writer, new CodeGeneratorOptions());
-                code = writer.GetStringBuilder();
-                Debug.Log(code.ToString());
+                codeProvider.GenerateCodeFromNamespace(context.XmlCode, writer, codeGenOptions);
+                xmlCode = writer.GetStringBuilder();
+                Debug.Log(xmlCode.ToString());
             }
 
-            var filePath = Path.Combine(Application.dataPath, Path.Combine("XSD", "out.txt"));
-            File.WriteAllText(filePath, code.ToString());
+            StringBuilder soCode;
+            using (StringWriter writer = new StringWriter())
+            {
+                codeProvider.GenerateCodeFromNamespace(context.ScriptableObjectCode, writer, codeGenOptions);
+                soCode = writer.GetStringBuilder();
+                Debug.Log(soCode.ToString());
+            }
+
+            var filePath = Path.Combine(Application.dataPath, Path.Combine("Generated", Path.Combine("Editor", "XmlData.cs")));
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            File.WriteAllText(filePath, xmlCode.ToString());
 
             // Refresh Unity to compile everything
             AssetDatabase.Refresh();
@@ -164,18 +174,7 @@ namespace Xsd2So
         private static void RunCodeModifiers(CodeNamespace codeNamespace, GenerationContext context)
         {
             var  createSo = new ScriptableObjectGenerator();
-            
-            foreach(var modableType in context.XsdCodeMapping)
-            {
-                // 1. create a new namespace, which is accessible for non-editor code
-                // 2. for all Xsd types
-                //    a) generate serializable type
-                //    b) add serializable type to new namespace
-                //    c) generate content-transfering method to copy Xsd type data to SO type data (e.g. "XsdType.Copy(soType)"
-                //
-                // Context object necessary. It should contain all code namespaces (Xsd code namespace, SO code namespace,
-                // user defined code namespaces), the data representation list and possible other stuff.
-            }
+            createSo.Execute(context);
         }
 
         private static void AssociateXsdTypeWithCodeType(DataRepresentation rep, CodeNamespace codeNamespace)

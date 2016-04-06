@@ -1,7 +1,7 @@
 ﻿namespace Xsd2So
 {
-    public interface ICodeModifier
+    interface ICodeModifier
     {
-
+        void Execute(GenerationContext ctx);
     }
 }
