@@ -67,8 +67,13 @@ namespace Xsd2So
                 if (member is CodeMemberField)
                 {
                     var m = member as CodeMemberField;
+
                     var mf = new CodeMemberField(m.Type, m.Name);
                     mf.Attributes = MemberAttributes.Public;
+
+                    // replace xxxSpecified with nullable type
+                    // rename property and cut xxxField out
+
                     r.Members.Add(mf);
                 }
             }
