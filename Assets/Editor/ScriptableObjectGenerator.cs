@@ -97,7 +97,9 @@ namespace Xsd2So
                 {
                     var m = member as CodeMemberField;
 
-                    var mf = new CodeMemberField(m.Type, m.Name);
+					var memberName = RemoveFieldNumberPartOfName(m.Name);
+
+                    var mf = new CodeMemberField(m.Type, memberName);
                     mf.Attributes = MemberAttributes.Public;
 					
 					// maybe add a getter which is baked by the generated field?
@@ -109,5 +111,11 @@ namespace Xsd2So
 
             return r;
         }
-    }
+
+		private string RemoveFieldNumberPartOfName(string name)
+		{
+			var fieldPartIdx = name.IndexOf("Field");
+			return name.Substring(0, fieldPartIdx);
+		}
+	}
 }

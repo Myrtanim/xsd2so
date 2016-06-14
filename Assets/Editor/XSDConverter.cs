@@ -141,7 +141,7 @@ namespace Xsd2So
 			RunCodeModifiers(codeNamespace, context);
 
 			// Check for invalid characters in identifiers
-			//CodeGenerator.ValidateIdentifiers(codeNamespace); // no implemented in Unity's Mono, has to be handwritten
+			//CodeGenerator.ValidateIdentifiers(codeNamespace); // not implemented in Unity's Mono, has to be handwritten
 
 			// output the C# code
 			CSharpCodeProvider codeProvider = new CSharpCodeProvider();
