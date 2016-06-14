@@ -75,11 +75,15 @@ namespace Xsd2So
         [MenuItem("XSD/Convert")]
         public static void Convert()
 		{
+			#region Rework this section to be more dynamic
+
 			// Load XSD as text file
 			var path = Application.dataPath + "/XSD/test.xsd";
 			var content = File.ReadAllText(path);
 
 			var context = new GenerationContext("Exmaple.Generated.Editor", "Example.Generated", "BalancingData");
+
+			#endregion
 
 			// Parse Xsd to schema code representation
 			context.XsdConfig.ProcessXsd(content);
@@ -163,6 +167,7 @@ namespace Xsd2So
 				Debug.Log(soCode.ToString());
 			}
 
+			// TODO Hardcoded, make it dynamic
 			SaveCodeToFile(xmlCode, Path.Combine("Generated", Path.Combine("Editor", "XmlData.cs")));
 			SaveCodeToFile(soCode, Path.Combine("Generated", "XmlDataScriptableObject.cs"));
 
@@ -178,8 +183,9 @@ namespace Xsd2So
 		}
 
 		private static void RunCodeModifiers(CodeNamespace codeNamespace, GenerationContext context)
-        {
-            var  createSo = new ScriptableObjectGenerator();
+		{
+			// TODO Hardcoded, make it dynamic
+			var createSo = new ScriptableObjectGenerator();
             createSo.Execute(context);
         }
 
@@ -200,28 +206,6 @@ namespace Xsd2So
                 {
                     rep.CodeType = type;
                     return;
-                }
-            }
-        }
-
-        // Remove all the attributes from each type in the CodeNamespace, except
-        // System.Xml.Serialization.XmlTypeAttribute
-        private static void RemoveAttributes(CodeNamespace codeNamespace)
-        {
-            foreach (CodeTypeDeclaration codeType in codeNamespace.Types)
-            {
-                CodeAttributeDeclaration xmlTypeAttribute = null;
-                foreach (CodeAttributeDeclaration codeAttribute in codeType.CustomAttributes)
-                {
-                    if (codeAttribute.Name == "System.Xml.Serialization.XmlTypeAttribute")
-                    {
-                        xmlTypeAttribute = codeAttribute;
-                    }
-                }
-                codeType.CustomAttributes.Clear();
-                if (xmlTypeAttribute != null)
-                {
-                    codeType.CustomAttributes.Add(xmlTypeAttribute);
                 }
             }
         }

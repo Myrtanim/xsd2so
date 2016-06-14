@@ -18,18 +18,26 @@ namespace Xsd2So
             foreach (var xsdType in ctx.XsdCodeMapping)
             {
                 var duplicatedType = Copy(xsdType.CodeType, ctx);
-                CreateCopyMethod(duplicatedType);
+                CreateCopyMethod(duplicatedType, xsdType.CodeType);
                 
                 ctx.ScriptableObjectCode.Types.Add(duplicatedType);
             }
         }
 
-        private void CreateCopyMethod(CodeTypeDeclaration duplicatedType)
+        private void CreateCopyMethod(CodeTypeDeclaration serializableType, CodeTypeDeclaration xsdType)
         {
-            
-        }
+			// need special handling for root element
 
-        private CodeTypeDeclaration Copy(CodeTypeDeclaration codeType, GenerationContext context)
+			// create static helper class/method? or just embed the ToSerializable() method?
+			// Problem is, we can't new ScriptableObjects.
+			// But we can do
+			//		ScriptableObject.CreateInstance<RootClassType>()
+			// and then in the recursivly do the ToSerializable()...
+
+			// TODO: write a example how the code should look like, beginning from the
+		}
+
+		private CodeTypeDeclaration Copy(CodeTypeDeclaration codeType, GenerationContext context)
         {
             if (codeType.IsClass)
             {
@@ -56,8 +64,10 @@ namespace Xsd2So
 		{
 			var rootClass = CopyClass(codeType);
 			rootClass.CustomAttributes.Clear();
-
 			rootClass.BaseTypes.Add(new CodeTypeReference(typeof(ScriptableObject)));
+
+			// TODO: this is optional and does not necessarily have to be, since the
+			// xsdType.ToSerializable() exists...
 			CodeDomHelper.AddAttribute(rootClass,
 				typeof(CreateAssetMenuAttribute),
 				new Pair<string, object>("fileName", codeType.Name),
@@ -97,13 +107,16 @@ namespace Xsd2So
                 {
                     var m = member as CodeMemberField;
 
+					// TODO: This is a rather custom rework. Do we need this?
 					var memberName = RemoveFieldNumberPartOfName(m.Name);
 
                     var mf = new CodeMemberField(m.Type, memberName);
                     mf.Attributes = MemberAttributes.Public;
 					
-					// maybe add a getter which is baked by the generated field?
-					// then also the field itself can be private, with a SerializeField attribute
+					// Maybe add a getter which is baked by the generated field?
+					// then also the field itself can be private, with a SerializeField attribute,
+					// and thus make it readonly. Which is a good idea, since this is static data,
+					// that should not be altered.
 
                     r.Members.Add(mf);
                 }
