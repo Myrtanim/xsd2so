@@ -1,5 +1,7 @@
 ﻿using System;
 using System.CodeDom;
+using UnityEngine;
+using UnityEditor;
 
 namespace Xsd2So
 {
@@ -15,7 +17,7 @@ namespace Xsd2So
 
             foreach (var xsdType in ctx.XsdCodeMapping)
             {
-                var duplicatedType = Copy(xsdType.CodeType);
+                var duplicatedType = Copy(xsdType.CodeType, ctx);
                 CreateCopyMethod(duplicatedType);
                 
                 ctx.ScriptableObjectCode.Types.Add(duplicatedType);
@@ -27,11 +29,18 @@ namespace Xsd2So
             
         }
 
-        private CodeTypeDeclaration Copy(CodeTypeDeclaration codeType)
+        private CodeTypeDeclaration Copy(CodeTypeDeclaration codeType, GenerationContext context)
         {
             if (codeType.IsClass)
             {
-                return CopyClass(codeType);
+				if (codeType.Name == context.RootElementTypeName)
+				{
+					return CopyRootClass(codeType);
+				}
+				else
+				{
+					return CopyClass(codeType);
+				}
             }
             else if (codeType.IsEnum)
             {
@@ -43,7 +52,23 @@ namespace Xsd2So
             }
         }
 
-        private CodeTypeDeclaration CopyEnum(CodeTypeDeclaration codeType)
+		private CodeTypeDeclaration CopyRootClass(CodeTypeDeclaration codeType)
+		{
+			var rootClass = CopyClass(codeType);
+			rootClass.CustomAttributes.Clear();
+
+			rootClass.BaseTypes.Add(new CodeTypeReference(typeof(ScriptableObject)));
+			CodeDomHelper.AddAttribute(rootClass,
+				typeof(CreateAssetMenuAttribute),
+				new Pair<string, object>("fileName", codeType.Name),
+				new Pair<string, object>("menuName", "Xsd2So/Create " + codeType.Name),
+				new Pair<string, object>("order", 1)
+			);
+
+			return rootClass;
+		}
+
+		private CodeTypeDeclaration CopyEnum(CodeTypeDeclaration codeType)
         {
             var r = new CodeTypeDeclaration(codeType.Name);
             r.IsEnum = true;
@@ -60,8 +85,12 @@ namespace Xsd2So
         private CodeTypeDeclaration CopyClass(CodeTypeDeclaration codeType)
         {
             var r = new CodeTypeDeclaration(codeType.Name);
-            r.IsClass = true;
+            r.IsClass = true; // make it a class
+			r.IsPartial = true; // make it a partial class
 
+			// Add Serializable attribute
+			CodeDomHelper.AddAttribute(r, typeof(SerializableAttribute));
+			
             foreach (CodeTypeMember member in codeType.Members)
             {
                 if (member is CodeMemberField)
@@ -70,9 +99,9 @@ namespace Xsd2So
 
                     var mf = new CodeMemberField(m.Type, m.Name);
                     mf.Attributes = MemberAttributes.Public;
-
-                    // replace xxxSpecified with nullable type
-                    // rename property and cut xxxField out
+					
+					// maybe add a getter which is baked by the generated field?
+					// then also the field itself can be private, with a SerializeField attribute
 
                     r.Members.Add(mf);
                 }

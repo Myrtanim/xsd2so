@@ -19,7 +19,9 @@ namespace Xsd2So
 
         public CodeNamespaceCollection AdditionalCode { get; set; }
 
-        public GenerationContext(string xmlCodeNamespaceName, string scriptableObjectNamespaceName)
+		public string RootElementTypeName { get; set; }
+
+		public GenerationContext(string xmlCodeNamespaceName, string scriptableObjectNamespaceName, string rootElementTypeName)
         {
             XsdConfig = new XsdConfig();
 
@@ -28,6 +30,8 @@ namespace Xsd2So
 
             XsdCodeMapping = new List<DataRepresentation>();
             AdditionalCode = new CodeNamespaceCollection();
+
+			RootElementTypeName = rootElementTypeName;
         }
     }
 
