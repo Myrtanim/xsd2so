@@ -2,29 +2,119 @@
 using System.CodeDom;
 using UnityEngine;
 using UnityEditor;
+using System.Collections.Generic;
 
 namespace Xsd2So
 {
     internal class ScriptableObjectGenerator : ICodeModifier
     {
-        public void Execute(GenerationContext ctx)
-        {
-            // 1. create a new namespace, which is accessible for non-editor code
-            // 2. for all Xsd types
-            //    a) generate serializable type
-            //    b) add serializable type to new namespace
-            //    c) generate content-transfering method to copy Xsd type data to SO type data (e.g. "XsdType.Copy(soType)"
+		private string soClassPostfix;
 
+		public ScriptableObjectGenerator(string soClassPostfix)
+		{
+			this.soClassPostfix = soClassPostfix;
+		}
+
+		public void Execute(GenerationContext ctx)
+		{
+			Dictionary<string, CodeTypeDeclaration> xmlTypeToSoType = new Dictionary<string, CodeTypeDeclaration>();
+
+			// Step 1:
+			// Generate all SO types without their members, so that we have all required types available.
+			foreach (var xsdType in ctx.XsdCodeMapping)
+			{
+				var copiedType = CreateSoType(xsdType.CodeType, ctx);
+				xmlTypeToSoType.Add(xsdType.CodeType.Name, copiedType);
+
+				if (copiedType.IsEnum)
+				{
+					ctx.ScriptableObjectCode.Types.Add(copiedType);
+				}
+			}
+
+			// Step 2:
+			// Generate members of SO types and replace XSD member types with their SO equivalents.
             foreach (var xsdType in ctx.XsdCodeMapping)
             {
-                var duplicatedType = Copy(xsdType.CodeType, ctx);
-                CreateCopyMethod(duplicatedType, xsdType.CodeType);
-                
-                ctx.ScriptableObjectCode.Types.Add(duplicatedType);
-            }
+				if (!xsdType.CodeType.IsEnum)
+				{
+					var soType = CopyMembers(xsdType.CodeType, ctx, xmlTypeToSoType);
+					CreateCopyMethod(soType, xsdType.CodeType);
+
+					ctx.ScriptableObjectCode.Types.Add(soType);
+				}
+			}
         }
 
-        private void CreateCopyMethod(CodeTypeDeclaration serializableType, CodeTypeDeclaration xsdType)
+		private CodeTypeDeclaration CreateSoType(CodeTypeDeclaration codeType, GenerationContext context)
+		{
+			if (codeType.IsClass)
+			{
+				if (codeType.Name == context.RootElementTypeName)
+				{
+					return CreateSoRootClass(codeType);
+				}
+				else
+				{
+					return CreateSoClass(codeType);
+				}
+			}
+			else if (codeType.IsEnum)
+			{
+				return CopyEnum(codeType);
+			}
+			else
+			{
+				throw new ArgumentException("Unhandled code type: " + codeType.Name);
+			}
+		}
+
+		private CodeTypeDeclaration CreateSoRootClass(CodeTypeDeclaration codeType)
+		{
+			var rootClass = CreateSoClass(codeType);
+			rootClass.Name += soClassPostfix;
+			rootClass.CustomAttributes.Clear();
+			rootClass.BaseTypes.Add(new CodeTypeReference(typeof(ScriptableObject)));
+
+			// TODO: this is optional and does not necessarily have to be, since the
+			// xsdType.ToSerializable() exists...
+			CodeDomHelper.AddAttribute(rootClass,
+				typeof(CreateAssetMenuAttribute),
+				new Pair<string, object>("fileName", rootClass.Name),
+				new Pair<string, object>("menuName", "Xsd2So/Create " + rootClass.Name),
+				new Pair<string, object>("order", 1)
+			);
+
+			return rootClass;
+		}
+
+		private CodeTypeDeclaration CreateSoClass(CodeTypeDeclaration codeType)
+		{
+			var r = new CodeTypeDeclaration(codeType.Name);
+			r.IsClass = true; // make it a class
+			r.IsPartial = true; // make it a partial class
+
+			// Add Serializable attribute
+			CodeDomHelper.AddAttribute(r, typeof(SerializableAttribute));
+
+			return r;
+		}
+
+		private CodeTypeDeclaration CopyEnum(CodeTypeDeclaration codeType)
+		{
+			var r = new CodeTypeDeclaration(codeType.Name);
+			r.IsEnum = true;
+
+			foreach (CodeMemberField member in codeType.Members)
+			{
+				var enumVal = new CodeMemberField(member.Type, member.Name);
+				r.Members.Add(enumVal);
+			}
+
+			return r;
+		}
+
+		private void CreateCopyMethod(CodeTypeDeclaration serializableType, CodeTypeDeclaration xsdType)
         {
 			// need special handling for root element
 
@@ -37,93 +127,51 @@ namespace Xsd2So
 			// TODO: write a example how the code should look like, beginning from the
 		}
 
-		private CodeTypeDeclaration Copy(CodeTypeDeclaration codeType, GenerationContext context)
+		private CodeTypeDeclaration CopyMembers(CodeTypeDeclaration codeType, GenerationContext context, Dictionary<string, CodeTypeDeclaration> xsdTypeToSoType)
         {
-            if (codeType.IsClass)
-            {
-				if (codeType.Name == context.RootElementTypeName)
+			CodeTypeDeclaration soType;
+			if (xsdTypeToSoType.TryGetValue(codeType.Name, out soType))
+			{
+				foreach (CodeTypeMember member in codeType.Members)
 				{
-					return CopyRootClass(codeType);
+					if (member is CodeMemberField)
+					{
+						var xsdMember = member as CodeMemberField;
+
+						// TODO: This is a rather custom rework. Do we need this?
+						var memberName = RemoveFieldNumberPartOfName(xsdMember.Name);
+						var xsdMemberType = xsdMember.Type.BaseType;
+
+						CodeMemberField soMember = null;
+						CodeTypeDeclaration soMemberType;
+						if (xsdTypeToSoType.TryGetValue(xsdMemberType, out soMemberType))
+						{ // its type generated by this code generator
+
+							soMember = new CodeMemberField(soMemberType.Name, memberName);
+
+							if (xsdMember.Type.ArrayRank > 0)
+							{ // its an array type, so we have to transfer this information also
+								soMember.Type.ArrayRank = xsdMember.Type.ArrayRank;
+								soMember.Type.ArrayElementType = new CodeTypeReference(soMemberType.Name);
+							}
+						}
+						else
+						{ // its some other type, e.g. a .Net primitive
+							soMember = new CodeMemberField(xsdMember.Type, memberName);
+						}
+
+						soMember.Attributes = MemberAttributes.Public;
+						soType.Members.Add(soMember);
+					}
 				}
-				else
-				{
-					return CopyClass(codeType);
-				}
-            }
-            else if (codeType.IsEnum)
-            {
-                return CopyEnum(codeType);
-            }
-            else
-            {
-                throw new ArgumentException("Unhandled code type: " + codeType.Name);
-            }
-        }
+			}
+			else
+			{
+				Debug.LogError("Code generation error:\nThere is no serializable class type for the XSD type '" + codeType.Name + "'!");
+			}
 
-		private CodeTypeDeclaration CopyRootClass(CodeTypeDeclaration codeType)
-		{
-			var rootClass = CopyClass(codeType);
-			rootClass.CustomAttributes.Clear();
-			rootClass.BaseTypes.Add(new CodeTypeReference(typeof(ScriptableObject)));
-
-			// TODO: this is optional and does not necessarily have to be, since the
-			// xsdType.ToSerializable() exists...
-			CodeDomHelper.AddAttribute(rootClass,
-				typeof(CreateAssetMenuAttribute),
-				new Pair<string, object>("fileName", codeType.Name),
-				new Pair<string, object>("menuName", "Xsd2So/Create " + codeType.Name),
-				new Pair<string, object>("order", 1)
-			);
-
-			return rootClass;
+			return soType;
 		}
-
-		private CodeTypeDeclaration CopyEnum(CodeTypeDeclaration codeType)
-        {
-            var r = new CodeTypeDeclaration(codeType.Name);
-            r.IsEnum = true;
-
-            foreach(CodeMemberField member in codeType.Members)
-            {
-                var enumVal = new CodeMemberField(member.Type, member.Name);
-                r.Members.Add(enumVal);
-            }
-
-            return r;
-        }
-
-        private CodeTypeDeclaration CopyClass(CodeTypeDeclaration codeType)
-        {
-            var r = new CodeTypeDeclaration(codeType.Name);
-            r.IsClass = true; // make it a class
-			r.IsPartial = true; // make it a partial class
-
-			// Add Serializable attribute
-			CodeDomHelper.AddAttribute(r, typeof(SerializableAttribute));
-			
-            foreach (CodeTypeMember member in codeType.Members)
-            {
-                if (member is CodeMemberField)
-                {
-                    var m = member as CodeMemberField;
-
-					// TODO: This is a rather custom rework. Do we need this?
-					var memberName = RemoveFieldNumberPartOfName(m.Name);
-
-                    var mf = new CodeMemberField(m.Type, memberName);
-                    mf.Attributes = MemberAttributes.Public;
-					
-					// Maybe add a getter which is baked by the generated field?
-					// then also the field itself can be private, with a SerializeField attribute,
-					// and thus make it readonly. Which is a good idea, since this is static data,
-					// that should not be altered.
-
-                    r.Members.Add(mf);
-                }
-            }
-
-            return r;
-        }
 
 		private string RemoveFieldNumberPartOfName(string name)
 		{

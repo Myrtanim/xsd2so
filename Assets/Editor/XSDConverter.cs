@@ -185,7 +185,7 @@ namespace Xsd2So
 		private static void RunCodeModifiers(CodeNamespace codeNamespace, GenerationContext context)
 		{
 			// TODO Hardcoded, make it dynamic
-			var createSo = new ScriptableObjectGenerator();
+			var createSo = new ScriptableObjectGenerator("SO");
             createSo.Execute(context);
         }
 
