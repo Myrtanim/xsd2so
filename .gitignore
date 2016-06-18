@@ -4,3 +4,4 @@ Library/
 *.sln
 Temp/
 Assets/Generated/
+Assets/Generated.meta
