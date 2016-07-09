@@ -32,4 +32,12 @@ namespace Xsd2So
 			codeDomType.CustomAttributes.Add(attributeDecl);
 		}
 	}
+
+	static class StringHelper
+	{
+		public static string ToFirstLetterLowerCase(this string str)
+		{
+			return Char.ToLowerInvariant(str[0]) + str.Substring(1);
+		}
+	}
 }

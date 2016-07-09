@@ -1,5 +1,6 @@
 ﻿using System;
 using System.CodeDom;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
@@ -39,12 +40,101 @@ namespace Xsd2So
 				if (!xsdType.CodeType.IsEnum)
 				{
 					var soType = CopyMembers(xsdType.CodeType, ctx, xmlTypeToSoType);
-					CreateCopyMethod(soType, xsdType.CodeType);
+					CreateCopyMethod(soType, xsdType.CodeType, xmlTypeToSoType, ctx);
 
 					ctx.ScriptableObjectCode.Types.Add(soType);
 				}
 			}
-        }
+		}
+
+		#region Code generation for data copy method XSD -> SO
+
+		private void CreateCopyMethod(
+			CodeTypeDeclaration soType,
+			CodeTypeDeclaration xsdType,
+			Dictionary<string, CodeTypeDeclaration> xmlTypeToSoType,
+			GenerationContext ctx
+		)
+		{
+			// create ToSerializable method for this xsdType
+			var toSerializableMethod = new CodeMemberMethod();
+			toSerializableMethod.Name = "ToSerializable";
+			toSerializableMethod.Attributes = MemberAttributes.Public | MemberAttributes.Final;
+			toSerializableMethod.ReturnType = new CodeTypeReference(typeof(void));
+
+			var paramType = ctx.ScriptableObjectCode.Name + "." + soType.Name;
+			var paramName = soType.Name.ToFirstLetterLowerCase();
+			var parameter = new CodeParameterDeclarationExpression(paramType, paramName);
+			toSerializableMethod.Parameters.Add(parameter);
+
+			foreach (CodeTypeMember member in xsdType.Members)
+			{
+				if (member is CodeMemberProperty)
+				{
+					var xsdProperty = member as CodeMemberProperty;
+					var xsdPropertyType = xsdProperty.Type.BaseType;
+
+					bool isXsdType = xmlTypeToSoType.ContainsKey(xsdPropertyType);
+
+					CodeStatement transferStatement = null;
+					if (isXsdType)
+					{
+						//Debug.Log(xsdType.Name + "." + xsdProperty.Name + " : " + xsdPropertyType + " (<b>XSD</b> type)");
+						//var memberXsdType = ctx.XsdCodeMapping.First(ele => ele.CodeType.Name == xsdPropertyType);
+						//if (memberXsdType == null)
+						//{
+						//	Debug.LogError("No Xsd Code mapping founs for '" + xsdPropertyType + "'");
+						//	continue;
+						//}
+
+						//var memberXsdCodeDeclaration = memberXsdType.CodeType;
+						//if (memberXsdCodeDeclaration.IsEnum) // handle enum members with Xsd types
+						//{
+						//	transferStatement = new CodeAssignStatement(
+						//		new CodePropertyReferenceExpression(
+						//			new CodeVariableReferenceExpression(paramName),
+						//			xsdProperty.Name.ToFirstLetterLowerCase()
+						//		),
+						//		new CodeCastExpression(new CodeTypeReference(xmlTypeToSoType[memberXsdCodeDeclaration.Name].Name),
+						//			new CodePropertyReferenceExpression(
+						//				new CodeThisReferenceExpression(),
+						//				xsdProperty.Name
+						//			)
+						//		)
+						//	);
+						//}
+						//// handle normal members with Xsd types
+
+						//// handle array members with Xsd types
+					}
+					else
+					{
+						// soObject.value = this.value;
+						transferStatement = new CodeAssignStatement(
+								new CodePropertyReferenceExpression(
+									new CodeVariableReferenceExpression(paramName),
+									xsdProperty.Name.ToFirstLetterLowerCase()
+								),
+								new CodePropertyReferenceExpression(
+									new CodeThisReferenceExpression(),
+									xsdProperty.Name
+								)
+							);
+					}
+
+					if (transferStatement != null)
+					{
+						toSerializableMethod.Statements.Add(transferStatement);
+					}
+				}
+			}
+
+			xsdType.Members.Add(toSerializableMethod);
+		}
+
+		#endregion
+
+		#region Type creation methods
 
 		private CodeTypeDeclaration CreateSoType(CodeTypeDeclaration codeType, GenerationContext context)
 		{
@@ -114,19 +204,6 @@ namespace Xsd2So
 			return r;
 		}
 
-		private void CreateCopyMethod(CodeTypeDeclaration serializableType, CodeTypeDeclaration xsdType)
-        {
-			// need special handling for root element
-
-			// create static helper class/method? or just embed the ToSerializable() method?
-			// Problem is, we can't new ScriptableObjects.
-			// But we can do
-			//		ScriptableObject.CreateInstance<RootClassType>()
-			// and then in the recursivly do the ToSerializable()...
-
-			// TODO: write a example how the code should look like, beginning from the
-		}
-
 		private CodeTypeDeclaration CopyMembers(CodeTypeDeclaration codeType, GenerationContext context, Dictionary<string, CodeTypeDeclaration> xsdTypeToSoType)
         {
 			CodeTypeDeclaration soType;
@@ -178,5 +255,7 @@ namespace Xsd2So
 			var fieldPartIdx = name.IndexOf("Field");
 			return name.Substring(0, fieldPartIdx);
 		}
+
+		#endregion
 	}
 }
