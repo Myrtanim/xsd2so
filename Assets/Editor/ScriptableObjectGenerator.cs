@@ -79,33 +79,35 @@ namespace Xsd2So
 					CodeStatement transferStatement = null;
 					if (isXsdType)
 					{
-						//Debug.Log(xsdType.Name + "." + xsdProperty.Name + " : " + xsdPropertyType + " (<b>XSD</b> type)");
-						//var memberXsdType = ctx.XsdCodeMapping.First(ele => ele.CodeType.Name == xsdPropertyType);
-						//if (memberXsdType == null)
-						//{
-						//	Debug.LogError("No Xsd Code mapping founs for '" + xsdPropertyType + "'");
-						//	continue;
-						//}
+						Debug.Log(xsdType.Name + "." + xsdProperty.Name + " : " + xsdPropertyType + " (<b>XSD</b> type)");
+						var memberXsdType = ctx.XsdCodeMapping.First(ele => ele.CodeType.Name == xsdPropertyType);
+						if (memberXsdType == null)
+						{
+							Debug.LogError("No Xsd Code mapping founs for '" + xsdPropertyType + "'");
+							continue;
+						}
 
-						//var memberXsdCodeDeclaration = memberXsdType.CodeType;
-						//if (memberXsdCodeDeclaration.IsEnum) // handle enum members with Xsd types
-						//{
-						//	transferStatement = new CodeAssignStatement(
-						//		new CodePropertyReferenceExpression(
-						//			new CodeVariableReferenceExpression(paramName),
-						//			xsdProperty.Name.ToFirstLetterLowerCase()
-						//		),
-						//		new CodeCastExpression(new CodeTypeReference(xmlTypeToSoType[memberXsdCodeDeclaration.Name].Name),
-						//			new CodePropertyReferenceExpression(
-						//				new CodeThisReferenceExpression(),
-						//				xsdProperty.Name
-						//			)
-						//		)
-						//	);
-						//}
-						//// handle normal members with Xsd types
+						var memberXsdCodeDeclaration = memberXsdType.CodeType;
+						if (memberXsdCodeDeclaration.IsEnum) // handle enum members with Xsd types
+						{
+							var targetEnumTypeFQN = ctx.ScriptableObjectCode.Name + "." + xmlTypeToSoType[memberXsdCodeDeclaration.Name].Name;
+							transferStatement = new CodeAssignStatement(
+								new CodePropertyReferenceExpression(
+									new CodeVariableReferenceExpression(paramName),
+									xsdProperty.Name.ToFirstLetterLowerCase()
+								),
+								new CodeCastExpression(
+									new CodeTypeReference(targetEnumTypeFQN),
+									new CodePropertyReferenceExpression(
+										new CodeThisReferenceExpression(),
+										xsdProperty.Name
+									)
+								)
+							);
+						}
+						// handle normal members with Xsd types
 
-						//// handle array members with Xsd types
+						// handle array members with Xsd types
 					}
 					else
 					{
