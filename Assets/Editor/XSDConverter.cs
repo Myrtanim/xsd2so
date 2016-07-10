@@ -80,7 +80,7 @@ namespace Xsd2So
 			var path = Application.dataPath + "/XSD/test.xsd";
 			var content = File.ReadAllText(path);
 
-			var context = new GenerationContext("Exmaple.Generated.Editor", "Example.Generated", "BalancingData");
+			var context = new GenerationContext("Example.Generated.Editor", "Example.Generated", "BalancingData");
 
 			#endregion
 

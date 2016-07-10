@@ -9,6 +9,8 @@ namespace Xsd2So
 {
     internal class ScriptableObjectGenerator : ICodeModifier
     {
+		private const string SERIALIZABLE_METHOD_NAME = "ToSerializable";
+
 		private string soClassPostfix;
 
 		public ScriptableObjectGenerator(string soClassPostfix)
@@ -18,14 +20,14 @@ namespace Xsd2So
 
 		public void Execute(GenerationContext ctx)
 		{
-			Dictionary<string, CodeTypeDeclaration> xmlTypeToSoType = new Dictionary<string, CodeTypeDeclaration>();
+			Dictionary<string, CodeTypeDeclaration> xsdTypeNameToSoTypeDecl = new Dictionary<string, CodeTypeDeclaration>();
 
 			// Step 1:
 			// Generate all SO types without their members, so that we have all required types available.
 			foreach (var xsdType in ctx.XsdCodeMapping)
 			{
 				var copiedType = CreateSoType(xsdType.CodeType, ctx);
-				xmlTypeToSoType.Add(xsdType.CodeType.Name, copiedType);
+				xsdTypeNameToSoTypeDecl.Add(xsdType.CodeType.Name, copiedType);
 
 				if (copiedType.IsEnum)
 				{
@@ -39,8 +41,8 @@ namespace Xsd2So
             {
 				if (!xsdType.CodeType.IsEnum)
 				{
-					var soType = CopyMembers(xsdType.CodeType, ctx, xmlTypeToSoType);
-					CreateCopyMethod(soType, xsdType.CodeType, xmlTypeToSoType, ctx);
+					var soType = CopyMembers(xsdType.CodeType, ctx, xsdTypeNameToSoTypeDecl);
+					CreateCopyMethod(soType, xsdType.CodeType, xsdTypeNameToSoTypeDecl, ctx);
 
 					ctx.ScriptableObjectCode.Types.Add(soType);
 				}
@@ -52,13 +54,13 @@ namespace Xsd2So
 		private void CreateCopyMethod(
 			CodeTypeDeclaration soType,
 			CodeTypeDeclaration xsdType,
-			Dictionary<string, CodeTypeDeclaration> xmlTypeToSoType,
+			Dictionary<string, CodeTypeDeclaration> xsdTypeNameToSoTypeDecl,
 			GenerationContext ctx
 		)
 		{
 			// create ToSerializable method for this xsdType
 			var toSerializableMethod = new CodeMemberMethod();
-			toSerializableMethod.Name = "ToSerializable";
+			toSerializableMethod.Name = SERIALIZABLE_METHOD_NAME;
 			toSerializableMethod.Attributes = MemberAttributes.Public | MemberAttributes.Final;
 			toSerializableMethod.ReturnType = new CodeTypeReference(typeof(void));
 
@@ -67,36 +69,36 @@ namespace Xsd2So
 			var parameter = new CodeParameterDeclarationExpression(paramType, paramName);
 			toSerializableMethod.Parameters.Add(parameter);
 
-			foreach (CodeTypeMember member in xsdType.Members)
+			foreach (CodeTypeMember xsdMember in xsdType.Members)
 			{
-				if (member is CodeMemberProperty)
+				if (xsdMember is CodeMemberProperty)
 				{
-					var xsdProperty = member as CodeMemberProperty;
+					var xsdProperty = xsdMember as CodeMemberProperty;
 					var xsdPropertyType = xsdProperty.Type.BaseType;
 
-					bool isXsdType = xmlTypeToSoType.ContainsKey(xsdPropertyType);
+					bool isXsdType = xsdTypeNameToSoTypeDecl.ContainsKey(xsdPropertyType);
 
 					CodeStatement transferStatement = null;
 					if (isXsdType)
 					{
-						var memberXsdType = ctx.XsdCodeMapping.First(ele => ele.CodeType.Name == xsdPropertyType);
-						if (memberXsdType == null)
+						var xsdMemberType = ctx.XsdCodeMapping.First(ele => ele.CodeType.Name == xsdPropertyType);
+						if (xsdMemberType == null)
 						{
-							Debug.LogError("No Xsd Code mapping founs for '" + xsdPropertyType + "'");
+							Debug.LogError("No Xsd Code mapping found for '" + xsdPropertyType + "'");
 							continue;
 						}
 
-						var memberXsdCodeDeclaration = memberXsdType.CodeType;
-						if (memberXsdCodeDeclaration.IsEnum) // handle enum members with Xsd types
+						var xsdMemberCodeDeclaration = xsdMemberType.CodeType;
+						var targetSoTypeFQN = ctx.ScriptableObjectCode.Name + "." + xsdTypeNameToSoTypeDecl[xsdMemberCodeDeclaration.Name].Name;
+						if (xsdMemberCodeDeclaration.IsEnum) // handle enum members with Xsd types
 						{
-							var targetEnumTypeFQN = ctx.ScriptableObjectCode.Name + "." + xmlTypeToSoType[memberXsdCodeDeclaration.Name].Name;
 							transferStatement = new CodeAssignStatement(
 								new CodePropertyReferenceExpression(
 									new CodeVariableReferenceExpression(paramName),
 									xsdProperty.Name.ToFirstLetterLowerCase()
 								),
 								new CodeCastExpression(
-									new CodeTypeReference(targetEnumTypeFQN),
+									new CodeTypeReference(targetSoTypeFQN),
 									new CodePropertyReferenceExpression(
 										new CodeThisReferenceExpression(),
 										xsdProperty.Name
@@ -106,14 +108,28 @@ namespace Xsd2So
 						}
 						else
 						{
-							if (xsdProperty.Type.ArrayRank == 0)
-							{// handle normal members with Xsd types
+							// first initialize new SO member to prevent NPE
+
+							if (xsdProperty.Type.ArrayRank == 0) // handle normal members with Xsd types
+							{
+								// first, create a new object of the SO field, to prevent NPE
+								toSerializableMethod.Statements.Add(new CodeAssignStatement(
+										new CodePropertyReferenceExpression(
+											new CodeVariableReferenceExpression(paramName),
+											xsdProperty.Name.ToFirstLetterLowerCase()
+										),
+										new CodeObjectCreateExpression(targetSoTypeFQN)
+									)
+								);
+
+								// now call recursivly ToSerializable to further transfer the data
 								transferStatement = new CodeExpressionStatement(
 									new CodeMethodInvokeExpression(
-										new CodePropertyReferenceExpression(new CodeThisReferenceExpression(),
-												xsdProperty.Name
-											),
-										"ToSerializable",
+										new CodePropertyReferenceExpression(
+											new CodeThisReferenceExpression(),
+											xsdProperty.Name
+										),
+										SERIALIZABLE_METHOD_NAME,
 										new CodeExpression[] {
 											new CodeFieldReferenceExpression(
 												new CodeArgumentReferenceExpression(paramName),
@@ -123,30 +139,116 @@ namespace Xsd2So
 									)
 								);
 							}
-							else
-							{// handle array members with Xsd types
-								Debug.LogWarning("Ignoring array for now: <b>"+ xsdType.Name + "</b>.<i>" + xsdProperty.Name + "</i> : " + xsdPropertyType);
+							else // handle array members with Xsd types (thats the fun part! :) )
+							{ // we want to generate this code:
+							  //		1	soObject.soField = new soType[this.xsdArrayProperty.Length];
+							  //		2	for (int i = 0; i < this.xsdArrayProperty.Length;  i = i + 1)
+							  //		3	{
+							  //		4		soObject.soField[i] = new soType();
+							  //		5		this.xsdArrayProperty[i].ToSerializable(soObject.soField[i]);
+							  //		6	}
+
+								// 1: soObject.soField = new soType[this.xsdArrayProperty.Length];
+								toSerializableMethod.Statements.Add(new CodeAssignStatement( // ... = ... 
+										new CodePropertyReferenceExpression( // soObject.soField ...
+											new CodeVariableReferenceExpression(paramName),
+											xsdProperty.Name.ToFirstLetterLowerCase()
+										),
+										new CodeArrayCreateExpression(
+											targetSoTypeFQN,
+											new CodePropertyReferenceExpression( // ... this.xsdArrayProperty.Length ...
+												new CodePropertyReferenceExpression( // ... this.xsdArrayProperty ...
+													new CodeThisReferenceExpression(),
+													xsdProperty.Name),
+												"Length"
+											)
+										)
+									)
+								);
+
+								// 2-6: iterate over array, create object, transfer data
+								transferStatement = new CodeIterationStatement( // for ... { ... }
+									new CodeVariableDeclarationStatement( // ... (i = 0; ...
+										typeof(int),
+										"i",
+										new CodePrimitiveExpression(0)
+									),
+									new CodeBinaryOperatorExpression( // ...; i < this.xsdArrayProperty.Length; ...
+										new CodeVariableReferenceExpression("i"), 
+										CodeBinaryOperatorType.LessThan,
+										new CodePropertyReferenceExpression( // ... this.xsdArrayProperty.Length ...
+											new CodePropertyReferenceExpression( // ... this.xsdArrayProperty ...
+												new CodeThisReferenceExpression(),
+												xsdProperty.Name),
+											"Length"
+										)
+									),
+									new CodeAssignStatement( // ... ; i = i + 1) ... // wo don't have the unary increment operator in CodeDom
+										new CodeVariableReferenceExpression("i"),
+										new CodeBinaryOperatorExpression(
+											new CodeVariableReferenceExpression("i"),
+											CodeBinaryOperatorType.Add,
+											new CodePrimitiveExpression(1)
+										)
+									),
+									new CodeStatement[] { // ... { ... }
+										new CodeAssignStatement( // soObject.soField[i] = new soType();
+											new CodeArrayIndexerExpression( // soObject.soField[i] ...
+												new CodePropertyReferenceExpression(
+													new CodeVariableReferenceExpression(paramName),
+													xsdProperty.Name.ToFirstLetterLowerCase()
+												),
+												new CodeVariableReferenceExpression("i")
+											),
+											new CodeObjectCreateExpression(targetSoTypeFQN)
+										),
+										new CodeExpressionStatement( // this.xsdArrayProperty[i].ToSerializable(soObject.soField[i]);
+											new CodeMethodInvokeExpression(
+												new CodeArrayIndexerExpression(
+													new CodePropertyReferenceExpression(
+														new CodeThisReferenceExpression(),
+														xsdProperty.Name
+													),
+													new CodeVariableReferenceExpression("i")
+												),
+												SERIALIZABLE_METHOD_NAME,
+												new CodeExpression[] {
+													new CodeArrayIndexerExpression(
+														new CodeFieldReferenceExpression(
+															new CodeArgumentReferenceExpression(paramName),
+															xsdProperty.Name.ToFirstLetterLowerCase()
+														),
+														new CodeVariableReferenceExpression("i")
+													)
+												}
+											)
+										)
+									}
+								);
 							}
 						}
 					}
 					else
 					{
+						// TODO need handle array types here, too!
+
 						// soObject.value = this.value;
 						transferStatement = new CodeAssignStatement(
-								new CodePropertyReferenceExpression(
-									new CodeVariableReferenceExpression(paramName),
-									xsdProperty.Name.ToFirstLetterLowerCase()
-								),
-								new CodePropertyReferenceExpression(
-									new CodeThisReferenceExpression(),
-									xsdProperty.Name
-								)
-							);
+							new CodePropertyReferenceExpression(
+								new CodeVariableReferenceExpression(paramName),
+								xsdProperty.Name.ToFirstLetterLowerCase()
+							),
+							new CodePropertyReferenceExpression(
+								new CodeThisReferenceExpression(),
+								xsdProperty.Name
+							)
+						);
 					}
 
 					if (transferStatement != null)
 					{
 						toSerializableMethod.Statements.Add(transferStatement);
+						toSerializableMethod.Statements.Add(new CodeSnippetStatement());
 					}
 				}
 			}
@@ -181,9 +283,9 @@ namespace Xsd2So
 			}
 		}
 
-		private CodeTypeDeclaration CreateSoRootClass(CodeTypeDeclaration codeType)
+		private CodeTypeDeclaration CreateSoRootClass(CodeTypeDeclaration xsdType)
 		{
-			var rootClass = CreateSoClass(codeType);
+			var rootClass = CreateSoClass(xsdType);
 			rootClass.Name += soClassPostfix;
 			rootClass.CustomAttributes.Clear();
 			rootClass.BaseTypes.Add(new CodeTypeReference(typeof(ScriptableObject)));
@@ -200,9 +302,9 @@ namespace Xsd2So
 			return rootClass;
 		}
 
-		private CodeTypeDeclaration CreateSoClass(CodeTypeDeclaration codeType)
+		private CodeTypeDeclaration CreateSoClass(CodeTypeDeclaration xsdType)
 		{
-			var r = new CodeTypeDeclaration(codeType.Name);
+			var r = new CodeTypeDeclaration(xsdType.Name);
 			r.IsClass = true; // make it a class
 			r.IsPartial = true; // make it a partial class
 
@@ -226,12 +328,12 @@ namespace Xsd2So
 			return r;
 		}
 
-		private CodeTypeDeclaration CopyMembers(CodeTypeDeclaration codeType, GenerationContext context, Dictionary<string, CodeTypeDeclaration> xsdTypeToSoType)
+		private CodeTypeDeclaration CopyMembers(CodeTypeDeclaration xsdType, GenerationContext context, Dictionary<string, CodeTypeDeclaration> xsdTypeToSoType)
         {
 			CodeTypeDeclaration soType;
-			if (xsdTypeToSoType.TryGetValue(codeType.Name, out soType))
+			if (xsdTypeToSoType.TryGetValue(xsdType.Name, out soType))
 			{
-				foreach (CodeTypeMember member in codeType.Members)
+				foreach (CodeTypeMember member in xsdType.Members)
 				{
 					if (member is CodeMemberField)
 					{
@@ -266,7 +368,7 @@ namespace Xsd2So
 			}
 			else
 			{
-				Debug.LogError("Code generation error:\nThere is no serializable class type for the XSD type '" + codeType.Name + "'!");
+				Debug.LogError("Code generation error:\nThere is no serializable class type for the XSD type '" + xsdType.Name + "'!");
 			}
 
 			return soType;
