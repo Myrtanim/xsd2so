@@ -26,7 +26,8 @@ namespace Xsd2So.Assets.Example.Editor
 
 				xmlData.ToSerializable(soInstance);
 
-				AssetDatabase.CreateAsset(soInstance, "Resources/XSD/testSO.asset");
+				Directory.CreateDirectory("Assets/Resources/XSD");
+				AssetDatabase.CreateAsset(soInstance, "Assets/Resources/XSD/testSO.asset");
 				AssetDatabase.SaveAssets();
 				EditorUtility.FocusProjectWindow();
 				Selection.activeObject = soInstance;
