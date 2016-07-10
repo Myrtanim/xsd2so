@@ -1,5 +1,5 @@
-﻿//using Example.Generated;
-//using Example.Generated.Editor;
+﻿using Example.Generated;
+using Example.Generated.Editor;
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
@@ -19,17 +19,17 @@ namespace Xsd2So.Assets.Example.Editor
 			{
 				xmlReader.Namespaces = true;
 
-				//XmlSerializer serializer = new XmlSerializer(typeof(BalancingData));
-				//BalancingData xmlData = (BalancingData)serializer.Deserialize(xmlReader);
+				XmlSerializer serializer = new XmlSerializer(typeof(BalancingData));
+				BalancingData xmlData = (BalancingData)serializer.Deserialize(xmlReader);
 
-				//var soInstance = ScriptableObject.CreateInstance<BalancingDataSO>();
+				var soInstance = ScriptableObject.CreateInstance<BalancingDataSO>();
 
-				//xmlData.ToSerializable(soInstance);
+				xmlData.ToSerializable(soInstance);
 
-				//AssetDatabase.CreateAsset(soInstance, "Resources/XSD/testSO.asset");
-				//AssetDatabase.SaveAssets();
-				//EditorUtility.FocusProjectWindow();
-				//Selection.activeObject = soInstance;
+				AssetDatabase.CreateAsset(soInstance, "Resources/XSD/testSO.asset");
+				AssetDatabase.SaveAssets();
+				EditorUtility.FocusProjectWindow();
+				Selection.activeObject = soInstance;
 			}
 		}
 	}
