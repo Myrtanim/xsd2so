@@ -79,7 +79,6 @@ namespace Xsd2So
 					CodeStatement transferStatement = null;
 					if (isXsdType)
 					{
-						Debug.Log(xsdType.Name + "." + xsdProperty.Name + " : " + xsdPropertyType + " (<b>XSD</b> type)");
 						var memberXsdType = ctx.XsdCodeMapping.First(ele => ele.CodeType.Name == xsdPropertyType);
 						if (memberXsdType == null)
 						{
@@ -105,9 +104,30 @@ namespace Xsd2So
 								)
 							);
 						}
-						// handle normal members with Xsd types
-
-						// handle array members with Xsd types
+						else
+						{
+							if (xsdProperty.Type.ArrayRank == 0)
+							{// handle normal members with Xsd types
+								transferStatement = new CodeExpressionStatement(
+									new CodeMethodInvokeExpression(
+										new CodePropertyReferenceExpression(new CodeThisReferenceExpression(),
+												xsdProperty.Name
+											),
+										"ToSerializable",
+										new CodeExpression[] {
+											new CodeFieldReferenceExpression(
+												new CodeArgumentReferenceExpression(paramName),
+												xsdProperty.Name.ToFirstLetterLowerCase()
+											)
+										}
+									)
+								);
+							}
+							else
+							{// handle array members with Xsd types
+								Debug.LogWarning("Ignoring array for now: <b>"+ xsdType.Name + "</b>.<i>" + xsdProperty.Name + "</i> : " + xsdPropertyType);
+							}
+						}
 					}
 					else
 					{
