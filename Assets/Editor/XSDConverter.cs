@@ -52,32 +52,13 @@ namespace Xsd2So
 
     public class XSDConverter
     {
-        /*
-            Need mapping XmlSchemaType to generated CodeDomType
-            Because CodeDomType contains getters/setters for attributes and also their
-                isSet state as attributes, if its an non-required XML attribute (most cases in GGS).
-
-            But XmlSchemaType can be XmlSchemaComplexType or XmlSchemaSimpleType
-                XmlSchemaSimpleType is converted to Enums
-                XmlSchemaComplexType is the "real" type definition and contains attributes
-
-            One can get the attributes list from XmlSchemaComplexType and from this get the real
-            attributes from the CodeDomeType and so differentiate it from the isSet attributes.
-
-            The isSet attribute is named "[xml attribute name]SpecifiedField", maybe this is the
-            cheap solution to differentiate it from normal attributes.
-
-            Only the non-isSet attributes from the CodeDomType have the real names, the private
-            fields have some numbers appended.
-        */
-
         [MenuItem("XSD/Convert")]
         public static void Convert()
 		{
 			#region Rework this section to be more dynamic
 
 			// Load XSD as text file
-			var path = Application.dataPath + "/XSD/test.xsd";
+			var path = Application.dataPath + "/Example/XSD/test.xsd";
 			var content = File.ReadAllText(path);
 
 			var context = new GenerationContext("Example.Generated.Editor", "Example.Generated", "BalancingData");
@@ -167,8 +148,8 @@ namespace Xsd2So
 			}
 
 			// TODO Hardcoded, make it dynamic
-			SaveCodeToFile(xmlCode, Path.Combine("Generated", Path.Combine("Editor", "XmlData.cs")));
-			SaveCodeToFile(soCode, Path.Combine("Generated", "XmlDataScriptableObject.cs"));
+			SaveCodeToFile(xmlCode, StringHelper.PathCombine(true, "Example", "Generated", "Editor", "XmlData.cs"));
+			SaveCodeToFile(soCode, StringHelper.PathCombine(true, "Example", "Generated", "XmlDataScriptableObject.cs"));
 
 			// Refresh Unity to compile everything
 			AssetDatabase.Refresh();

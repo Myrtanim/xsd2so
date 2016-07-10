@@ -1,5 +1,6 @@
 ﻿using System;
 using System.CodeDom;
+using System.IO;
 
 namespace Xsd2So
 {
@@ -38,6 +39,12 @@ namespace Xsd2So
 		public static string ToFirstLetterLowerCase(this string str)
 		{
 			return Char.ToLowerInvariant(str[0]) + str.Substring(1);
+		}
+
+		public static string PathCombine(bool prepandDirSeparator, params string[] pathElements)
+		{
+			return (prepandDirSeparator ? Path.DirectorySeparatorChar.ToString() : "")
+					+ string.Join(Path.DirectorySeparatorChar.ToString(), pathElements);
 		}
 	}
 }
