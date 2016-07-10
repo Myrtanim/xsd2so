@@ -21,7 +21,9 @@ namespace Xsd2So
 
 		public string RootElementTypeName { get; set; }
 
-		public GenerationContext(string xmlCodeNamespaceName, string scriptableObjectNamespaceName, string rootElementTypeName)
+		public string RootElementNodeName { get; set; }
+
+		public GenerationContext(string xmlCodeNamespaceName, string scriptableObjectNamespaceName, string rootElementTypeName, string rootElementNodeName)
         {
             XsdConfig = new XsdConfig();
 
@@ -32,7 +34,9 @@ namespace Xsd2So
             AdditionalCode = new CodeNamespaceCollection();
 
 			RootElementTypeName = rootElementTypeName;
-        }
+			RootElementNodeName = rootElementNodeName;
+
+		}
     }
 
     class XsdConfig

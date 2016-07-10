@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Xsd2So
 {
@@ -141,89 +142,101 @@ namespace Xsd2So
 							}
 							else // handle array members with Xsd types (thats the fun part! :) )
 							{ // we want to generate this code:
-							  //		1	soObject.soField = new soType[this.xsdArrayProperty.Length];
-							  //		2	for (int i = 0; i < this.xsdArrayProperty.Length;  i = i + 1)
-							  //		3	{
-							  //		4		soObject.soField[i] = new soType();
-							  //		5		this.xsdArrayProperty[i].ToSerializable(soObject.soField[i]);
-							  //		6	}
+							  //		1   if (this.xsdArrayProperty != null)
+							  //		2   {
+							  //		3		soObject.soField = new soType[this.xsdArrayProperty.Length];
+							  //		4		for (int i = 0; i < this.xsdArrayProperty.Length;  i = i + 1)
+							  //		5		{
+							  //		6			soObject.soField[i] = new soType();
+							  //		7			this.xsdArrayProperty[i].ToSerializable(soObject.soField[i]);
+							  //		8		}
+							  //		9	}
 
-								// 1: soObject.soField = new soType[this.xsdArrayProperty.Length];
-								toSerializableMethod.Statements.Add(new CodeAssignStatement( // ... = ... 
-										new CodePropertyReferenceExpression( // soObject.soField ...
-											new CodeVariableReferenceExpression(paramName),
-											xsdProperty.Name.ToFirstLetterLowerCase()
-										),
-										new CodeArrayCreateExpression(
-											targetSoTypeFQN,
-											new CodePropertyReferenceExpression( // ... this.xsdArrayProperty.Length ...
-												new CodePropertyReferenceExpression( // ... this.xsdArrayProperty ...
+								// 1-3: null check & array creation
+								toSerializableMethod.Statements.Add(
+									new CodeConditionStatement( // if (this.xsdArrayProperty != null) ...
+										new CodeBinaryOperatorExpression( // ... this.xsdArrayProperty != null ...
+											new CodePropertyReferenceExpression( // ... this.xsdArrayProperty ...
 													new CodeThisReferenceExpression(),
 													xsdProperty.Name),
-												"Length"
-											)
-										)
-									)
-								);
-
-								// 2-6: iterate over array, create object, transfer data
-								transferStatement = new CodeIterationStatement( // for ... { ... }
-									new CodeVariableDeclarationStatement( // ... (i = 0; ...
-										typeof(int),
-										"i",
-										new CodePrimitiveExpression(0)
-									),
-									new CodeBinaryOperatorExpression( // ...; i < this.xsdArrayProperty.Length; ...
-										new CodeVariableReferenceExpression("i"), 
-										CodeBinaryOperatorType.LessThan,
-										new CodePropertyReferenceExpression( // ... this.xsdArrayProperty.Length ...
-											new CodePropertyReferenceExpression( // ... this.xsdArrayProperty ...
-												new CodeThisReferenceExpression(),
-												xsdProperty.Name),
-											"Length"
-										)
-									),
-									new CodeAssignStatement( // ... ; i = i + 1) ... // wo don't have the unary increment operator in CodeDom
-										new CodeVariableReferenceExpression("i"),
-										new CodeBinaryOperatorExpression(
-											new CodeVariableReferenceExpression("i"),
-											CodeBinaryOperatorType.Add,
-											new CodePrimitiveExpression(1)
-										)
-									),
-									new CodeStatement[] { // ... { ... }
-										new CodeAssignStatement( // soObject.soField[i] = new soType();
-											new CodeArrayIndexerExpression( // soObject.soField[i] ...
-												new CodePropertyReferenceExpression(
-													new CodeVariableReferenceExpression(paramName),
-													xsdProperty.Name.ToFirstLetterLowerCase()
-												),
-												new CodeVariableReferenceExpression("i")
-											),
-											new CodeObjectCreateExpression(targetSoTypeFQN)
+											CodeBinaryOperatorType.IdentityInequality, // ... != ...
+											new CodeSnippetExpression("null") // ... null)
 										),
-										new CodeExpressionStatement( // this.xsdArrayProperty[i].ToSerializable(soObject.soField[i]);
-											new CodeMethodInvokeExpression(
-												new CodeArrayIndexerExpression(
-													new CodePropertyReferenceExpression(
+										new CodeAssignStatement( // ... = ... 
+											new CodePropertyReferenceExpression( // soObject.soField ...
+												new CodeVariableReferenceExpression(paramName),
+												xsdProperty.Name.ToFirstLetterLowerCase()
+											),
+											new CodeArrayCreateExpression(
+												targetSoTypeFQN,
+												new CodePropertyReferenceExpression( // ... this.xsdArrayProperty.Length ...
+													new CodePropertyReferenceExpression( // ... this.xsdArrayProperty ...
 														new CodeThisReferenceExpression(),
-														xsdProperty.Name
-													),
-													new CodeVariableReferenceExpression("i")
-												),
-												SERIALIZABLE_METHOD_NAME,
-												new CodeExpression[] {
-													new CodeArrayIndexerExpression(
-														new CodeFieldReferenceExpression(
-															new CodeArgumentReferenceExpression(paramName),
+														xsdProperty.Name),
+													"Length"
+												)
+											)
+										),
+										// 4-8: iterate over array, create object, transfer data
+										new CodeIterationStatement( // for ... { ... }
+											new CodeVariableDeclarationStatement( // ... (i = 0; ...
+												typeof(int),
+												"i",
+												new CodePrimitiveExpression(0)
+											),
+											new CodeBinaryOperatorExpression( // ...; i < this.xsdArrayProperty.Length; ...
+												new CodeVariableReferenceExpression("i"),
+												CodeBinaryOperatorType.LessThan,
+												new CodePropertyReferenceExpression( // ... this.xsdArrayProperty.Length ...
+													new CodePropertyReferenceExpression( // ... this.xsdArrayProperty ...
+														new CodeThisReferenceExpression(),
+														xsdProperty.Name),
+													"Length"
+												)
+											),
+											new CodeAssignStatement( // ... ; i = i + 1) ... // wo don't have the unary increment operator in CodeDom
+												new CodeVariableReferenceExpression("i"),
+												new CodeBinaryOperatorExpression(
+													new CodeVariableReferenceExpression("i"),
+													CodeBinaryOperatorType.Add,
+													new CodePrimitiveExpression(1)
+												)
+											),
+											new CodeStatement[] { // ... { ... }
+												new CodeAssignStatement( // soObject.soField[i] = new soType();
+													new CodeArrayIndexerExpression( // soObject.soField[i] ...
+														new CodePropertyReferenceExpression(
+															new CodeVariableReferenceExpression(paramName),
 															xsdProperty.Name.ToFirstLetterLowerCase()
 														),
 														new CodeVariableReferenceExpression("i")
+													),
+													new CodeObjectCreateExpression(targetSoTypeFQN)
+												),
+												new CodeExpressionStatement( // this.xsdArrayProperty[i].ToSerializable(soObject.soField[i]);
+													new CodeMethodInvokeExpression(
+														new CodeArrayIndexerExpression(
+															new CodePropertyReferenceExpression(
+																new CodeThisReferenceExpression(),
+																xsdProperty.Name
+															),
+															new CodeVariableReferenceExpression("i")
+														),
+														SERIALIZABLE_METHOD_NAME,
+														new CodeExpression[] {
+															new CodeArrayIndexerExpression(
+																new CodeFieldReferenceExpression(
+																	new CodeArgumentReferenceExpression(paramName),
+																	xsdProperty.Name.ToFirstLetterLowerCase()
+																),
+																new CodeVariableReferenceExpression("i")
+															)
+														}
 													)
-												}
-											)
+												)
+											}
 										)
-									}
+									)
 								);
 							}
 						}
@@ -266,7 +279,7 @@ namespace Xsd2So
 			{
 				if (codeType.Name == context.RootElementTypeName)
 				{
-					return CreateSoRootClass(codeType);
+					return CreateSoRootClass(codeType, context);
 				}
 				else
 				{
@@ -283,8 +296,33 @@ namespace Xsd2So
 			}
 		}
 
-		private CodeTypeDeclaration CreateSoRootClass(CodeTypeDeclaration xsdType)
+		private CodeTypeDeclaration CreateSoRootClass(CodeTypeDeclaration xsdType, GenerationContext context)
 		{
+			foreach (CodeAttributeDeclaration attribute in xsdType.CustomAttributes)
+			{
+				if (attribute.Name == "System.Xml.Serialization.XmlRootAttribute")
+				{
+					bool rootNameFound = false;
+					foreach (CodeAttributeArgument attriArg in attribute.Arguments)
+					{
+						if (attriArg.Value is CodePrimitiveExpression)
+						{
+							var expr = attriArg.Value as CodePrimitiveExpression;
+							if (expr.Value is string && (string)expr.Value == context.RootElementNodeName)
+							{
+								rootNameFound = true;
+								break;
+							}
+						}
+					}
+
+					if (!rootNameFound)
+					{
+						attribute.Arguments.Add(new CodeAttributeArgument(new CodeSnippetExpression("ElementName=\""+ context.RootElementNodeName + "\"")));
+					}
+				}
+			}
+
 			var rootClass = CreateSoClass(xsdType);
 			rootClass.Name += soClassPostfix;
 			rootClass.CustomAttributes.Clear();
