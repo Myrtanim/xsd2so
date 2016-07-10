@@ -148,8 +148,8 @@ namespace Xsd2So
 			}
 
 			// TODO Hardcoded, make it dynamic
-			SaveCodeToFile(xmlCode, StringHelper.PathCombine(true, "Example", "Generated", "Editor", "XmlData.cs"));
-			SaveCodeToFile(soCode, StringHelper.PathCombine(true, "Example", "Generated", "XmlDataScriptableObject.cs"));
+			SaveCodeToFile(xmlCode, StringHelper.PathCombine("Example", "Generated", "Editor", "XmlData.cs"));
+			SaveCodeToFile(soCode, StringHelper.PathCombine("Example", "Generated", "XmlDataScriptableObject.cs"));
 
 			// Refresh Unity to compile everything
 			AssetDatabase.Refresh();
