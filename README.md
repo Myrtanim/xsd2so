@@ -13,7 +13,7 @@ So this projects tries to fuse XML data binding with Unity's native serializatio
 ### How do I get set up? ###
 
 * Checkout
-* Run with Unity 5.3.2 or newer
+* Run with Unity 5.3.5 or newer
 * Go
 
 ### Contribution guidelines ###
