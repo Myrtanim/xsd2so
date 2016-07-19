@@ -8,7 +8,7 @@ So this projects tries to fuse XML data binding with Unity's native serializatio
 
 * generate code from XSD to Unity's ScriptableObject
 * also generates parsing of XML data to a ScriptableObject instance
-* 0.0.1
+* 0.1.0
 
 ### How do I get set up? ###
 
