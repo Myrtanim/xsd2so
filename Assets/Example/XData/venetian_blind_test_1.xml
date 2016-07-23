@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<root  xmlns="http://www.myrtanim.de"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.myrtanim.de venetian_blind_test_1.xsd">
+  <version>
+    <date>2016-07-23T22:25:33</date>
+    <major>1</major>
+    <minor>0</minor>
+    <fix>0</fix>
+  </version>
+  <animals>
+    <carnivor name="Tiger" size="medium" favoriteHerbivor="Wildebeest">
+      <description>A big cat.</description>
+      <attributeLevels>
+        <level level="1" strength="2" speed="4" hitPoints="5" />
+        <level level="2" strength="4" speed="4" hitPoints="10" canFly="false"/>
+        <level level="3" strength="8" speed="5" hitPoints="20" />
+        <level level="4" strength="12" speed="5" hitPoints="30" canFly="true" />
+      </attributeLevels>
+    </carnivor>
+    <herbivor name="Wildebeest" size="large" favoritePlantType="herbs">
+      <description>A dumb thing with mean horns.</description>
+      <attributeLevels>
+        <level level="1" strength="3" speed="2" hitPoints="3" />
+        <level level="2" strength="5" speed="3" hitPoints="10"/>
+        <level level="3" strength="10" speed="4" hitPoints="30" />
+        <level level="4" strength="15" speed="3" hitPoints="50" />
+      </attributeLevels>
+    </herbivor>
+    <carnivor name="Crocodile" size="large" favoriteHerbivor="Wildebeest">
+      <description>A Panzerechse.</description>
+      <attributeLevels>
+        <level level="1" strength="4" speed="3" hitPoints="10" />
+        <level level="2" strength="6" speed="5" hitPoints="20" />
+        <level level="3" strength="15" speed="6" hitPoints="30" />
+        <level level="4" strength="20" speed="4" hitPoints="40" />
+      </attributeLevels>
+    </carnivor>
+  </animals>
+</root>
