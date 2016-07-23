@@ -9,150 +9,139 @@ using Microsoft.CSharp;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
-using UnityEngine.Assertions;
 
 namespace Xsd2So
 {
-
-    public class DataRepresentation
-    {
-        public XmlTypeMapping TypeMapping { get; set; }
-        public CodeTypeDeclaration CodeType { get; set; }
-
-        public bool IsArray { get; internal set; }
-    }
-
-    public class DataTypeRepresentation : DataRepresentation
-    {
-        public XmlSchemaType XsdType { get; set; }
-        public bool IsComplexXsdType { get { return XsdType is XmlSchemaComplexType; } }
-    }
-
-    public class DataElementRepresentation : DataRepresentation
-    {
-        public XmlSchemaElement XsdType { get; set; }
-    }
-
-    class ModifiableRepresentationDuplicateComparer : IEqualityComparer<DataRepresentation>
-    {
-        public bool Equals(DataRepresentation x, DataRepresentation y)
-        {
-            if (x.TypeMapping.ElementName == y.TypeMapping.ElementName)
-            {
-                return true;
-            }
-            return false;
-        }
-
-        public int GetHashCode(DataRepresentation obj)
-        {
-            return obj.TypeMapping.ElementName.GetHashCode();
-        }
-    }
-
-    public class XSDConverter
-    {
-        [MenuItem("XSD/Convert")]
-        public static void Convert()
+    public class Xsd2So
+	{
+		public static void Generate(ConverterConfig config, string xsdContent)
 		{
-			#region Rework this section to be more dynamic
+			var context = new GenerationContext(config);
+			
+			ProcessXsd(xsdContent, context);
 
-			// Load XSD as text file
-			var path = Application.dataPath + "/Example/XSD/test.xsd";
-			var content = File.ReadAllText(path);
+			// Check for invalid characters in identifiers
+			//CodeGenerator.ValidateIdentifiers(codeNamespace); // not implemented in Unity's Mono, has to be handwritten
 
-			var context = new GenerationContext("Example.Generated.Editor", "Example.Generated", "BalancingData", "Root");
+			// Modify types
+			RunCodeModifiers(context);
 
-			#endregion
+			// output the C# code
+			CSharpCodeProvider codeProvider = new CSharpCodeProvider();
+			var codeGenOptions = new CodeGeneratorOptions();
+			var xmlCode = GenerateCodeFileContent(context.XmlCode, codeProvider, codeGenOptions);
+			var soCode = GenerateCodeFileContent(context.ScriptableObjectCode, codeProvider, codeGenOptions);
+			
+			SaveCodeToFile(xmlCode, config.SavePathXsdCode);
+			SaveCodeToFile(soCode, config.SavePathSoCode);
 
-			// Parse Xsd to schema code representation
-			context.XsdConfig.ProcessXsd(content);
+			// Refresh Unity to compile everything
+			//AssetDatabase.Refresh();
+		}
 
+		private static void ProcessXsd(string content, GenerationContext context)
+		{
+			ParseXsd(content, context);
+			CompileXsd(context);
+			var typeMappings = GenerateTypeMapping(context);
+			var modifiableTypes = GenerateXsdCode(context, typeMappings);
+			// get only distinct code mappings, because Xsd Elements and Xsd Types can be potantially be the same
+			context.XsdCodeMapping = modifiableTypes.Distinct(new ModifiableRepresentationDuplicateComparer());
+		}
+
+		private static List<DataRepresentation> GenerateXsdCode(GenerationContext context, List<DataRepresentation> typeMappings)
+		{
+			// Export all xsd type mappings to the CodeDOM
+			var modifiableTypes = new List<DataRepresentation>();
+			var codeExporter = new XmlCodeExporter(context.XmlCode);
+			foreach (var rep in typeMappings)
+			{
+				codeExporter.ExportTypeMapping(rep.TypeMapping);
+				AssociateXsdTypeWithCodeType(rep, context.XmlCode);
+				if (rep.CodeType != null)
+				{
+					modifiableTypes.Add(rep);
+				}
+			}
+
+			return modifiableTypes;
+		}
+
+		private static List<DataRepresentation> GenerateTypeMapping(GenerationContext context)
+		{
 			// Generate type mapping for all Xsd types.
-			XmlSchemaImporter schemaImporter = new XmlSchemaImporter(context.XsdConfig.XsdSchemas);
-			var typeList = new List<DataTypeRepresentation>(context.XsdConfig.XsdSchema.SchemaTypes.Values.Count);
-			foreach (XmlSchemaType schemaType in context.XsdConfig.XsdSchema.SchemaTypes.Values)
+			XmlSchemaImporter schemaImporter = new XmlSchemaImporter(context.XsdSchemas);
+			var typeMappingList = new List<DataRepresentation>(context.XsdSchema.SchemaTypes.Values.Count + context.XsdSchema.Elements.Values.Count);
+			foreach (XmlSchemaType schemaType in context.XsdSchema.SchemaTypes.Values)
 			{
 				var type = schemaImporter.ImportSchemaType(schemaType.QualifiedName);
 				var typeRep = new DataTypeRepresentation();
 				typeRep.XsdType = schemaType;
 				typeRep.TypeMapping = type;
 
-				typeList.Add(typeRep);
+				typeMappingList.Add(typeRep);
 			}
 
 			// Generate type mapping for all Xsd elements.
-			var elementList = new List<DataElementRepresentation>(context.XsdConfig.XsdSchema.Elements.Values.Count);
-			foreach (XmlSchemaElement schemaElement in context.XsdConfig.XsdSchema.Elements.Values)
+			foreach (XmlSchemaElement schemaElement in context.XsdSchema.Elements.Values)
 			{
 				var type = schemaImporter.ImportTypeMapping(schemaElement.QualifiedName);
 				var typeRep = new DataElementRepresentation();
 				typeRep.XsdType = schemaElement;
 				typeRep.TypeMapping = type;
 
-				elementList.Add(typeRep);
+				typeMappingList.Add(typeRep);
 			}
 
-			// Export all xsd type mappings to the CodeDOM
-			CodeNamespace codeNamespace = context.XmlCode;
-			XmlCodeExporter codeExporter = new XmlCodeExporter(codeNamespace);
-			var modifiableTypes = new List<DataRepresentation>();
-			foreach (var rep in typeList)
+			return typeMappingList;
+		}
+
+		private static void CompileXsd(GenerationContext context)
+		{
+			context.XsdSchemas = new XmlSchemas();
+			context.XsdSchemas.Add(context.XsdSchema);
+			context.XsdSchemas.Compile(null, true);
+		}
+
+		private static void ParseXsd(string content, GenerationContext context)
+		{
+			using (var stream = new StringReader(content))
 			{
-				codeExporter.ExportTypeMapping(rep.TypeMapping);
-				AssociateXsdTypeWithCodeType(rep, codeNamespace);
-				if (rep.CodeType != null)
+				context.XsdSchema = XmlSchema.Read(stream, null);
+			}
+		}
+
+		private static void AssociateXsdTypeWithCodeType(DataRepresentation rep, CodeNamespace codeNamespace)
+		{
+			var repXsd = rep.TypeMapping;
+			string xsdTypeName = repXsd.TypeName;
+			if (xsdTypeName.EndsWith("[]"))
+			{
+				rep.IsArray = true;
+				rep.CodeType = null;
+				return;
+			}
+
+			foreach (CodeTypeDeclaration type in codeNamespace.Types)
+			{
+				if (type.Name == xsdTypeName)
 				{
-					modifiableTypes.Add(rep);
+					rep.CodeType = type;
+					return;
 				}
 			}
+		}
 
-			foreach (var rep in elementList)
-			{
-				codeExporter.ExportTypeMapping(rep.TypeMapping);
-				AssociateXsdTypeWithCodeType(rep, codeNamespace);
-				if (rep.CodeType != null)
-				{
-					modifiableTypes.Add(rep);
-				}
-			}
-
-			context.XsdCodeMapping = modifiableTypes.Distinct(new ModifiableRepresentationDuplicateComparer());
-
-			Assert.AreEqual(codeNamespace.Types.Count, context.XsdCodeMapping.Count());
-
-			// Modify types
-			RunCodeModifiers(codeNamespace, context);
-
-			// Check for invalid characters in identifiers
-			//CodeGenerator.ValidateIdentifiers(codeNamespace); // not implemented in Unity's Mono, has to be handwritten
-
-			// output the C# code
-			CSharpCodeProvider codeProvider = new CSharpCodeProvider();
-			var codeGenOptions = new CodeGeneratorOptions();
-
+		private static StringBuilder GenerateCodeFileContent(CodeNamespace codeDom, CSharpCodeProvider codeProvider, CodeGeneratorOptions codeGenOptions)
+		{
 			StringBuilder xmlCode;
 			using (StringWriter writer = new StringWriter())
 			{
-				codeProvider.GenerateCodeFromNamespace(context.XmlCode, writer, codeGenOptions);
+				codeProvider.GenerateCodeFromNamespace(codeDom, writer, codeGenOptions);
 				xmlCode = writer.GetStringBuilder();
-				Debug.Log(xmlCode.ToString());
 			}
 
-			StringBuilder soCode;
-			using (StringWriter writer = new StringWriter())
-			{
-				codeProvider.GenerateCodeFromNamespace(context.ScriptableObjectCode, writer, codeGenOptions);
-				soCode = writer.GetStringBuilder();
-				Debug.Log(soCode.ToString());
-			}
-
-			// TODO Hardcoded, make it dynamic
-			SaveCodeToFile(xmlCode, StringHelper.PathCombine("Example", "Generated", "Editor", "XmlData.cs"));
-			SaveCodeToFile(soCode, StringHelper.PathCombine("Example", "Generated", "XmlDataScriptableObject.cs"));
-
-			// Refresh Unity to compile everything
-			AssetDatabase.Refresh();
+			return xmlCode;
 		}
 
 		private static void SaveCodeToFile(StringBuilder xmlCode, string savePath)
@@ -162,32 +151,11 @@ namespace Xsd2So
 			File.WriteAllText(filePath, xmlCode.ToString());
 		}
 
-		private static void RunCodeModifiers(CodeNamespace codeNamespace, GenerationContext context)
+		private static void RunCodeModifiers(GenerationContext context)
 		{
 			// TODO Hardcoded, make it dynamic
-			var createSo = new ScriptableObjectGenerator("SO");
+			var createSo = new ScriptableObjectGenerator(context.Config.SoSuffix);
             createSo.Execute(context);
-        }
-
-        private static void AssociateXsdTypeWithCodeType(DataRepresentation rep, CodeNamespace codeNamespace)
-        {
-            var repXsd = rep.TypeMapping;
-            string xsdTypeName = repXsd.TypeName;
-            if (xsdTypeName.EndsWith("[]"))
-            {
-                rep.IsArray = true;
-                rep.CodeType = null;
-                return;
-            }
-
-            foreach (CodeTypeDeclaration type in codeNamespace.Types)
-            {
-                if (type.Name == xsdTypeName)
-                {
-                    rep.CodeType = type;
-                    return;
-                }
-            }
         }
     }
 }

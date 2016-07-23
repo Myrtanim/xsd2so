@@ -277,7 +277,7 @@ namespace Xsd2So
 		{
 			if (codeType.IsClass)
 			{
-				if (codeType.Name == context.RootElementTypeName)
+				if (codeType.Name == context.Config.XsdRootElementTypeName)
 				{
 					return CreateSoRootClass(codeType, context);
 				}
@@ -308,7 +308,7 @@ namespace Xsd2So
 						if (attriArg.Value is CodePrimitiveExpression)
 						{
 							var expr = attriArg.Value as CodePrimitiveExpression;
-							if (expr.Value is string && (string)expr.Value == context.RootElementNodeName)
+							if (expr.Value is string && (string)expr.Value == context.Config.XmlRootNodeName)
 							{
 								rootNameFound = true;
 								break;
@@ -318,7 +318,11 @@ namespace Xsd2So
 
 					if (!rootNameFound)
 					{
-						attribute.Arguments.Add(new CodeAttributeArgument(new CodeSnippetExpression("ElementName=\""+ context.RootElementNodeName + "\"")));
+						attribute.Arguments.Add(
+							new CodeAttributeArgument(
+								new CodeSnippetExpression("ElementName=\"" + context.Config.XmlRootNodeName + "\"")
+							)
+						);
 					}
 				}
 			}

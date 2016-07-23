@@ -40,10 +40,5 @@ namespace Xsd2So
 		{
 			return Char.ToLowerInvariant(str[0]) + str.Substring(1);
 		}
-
-		public static string PathCombine(params string[] pathElements)
-		{
-			return string.Join(Path.DirectorySeparatorChar.ToString(), pathElements);
-		}
 	}
 }
