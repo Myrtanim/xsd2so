@@ -29,20 +29,24 @@ This whole project has the main intention to utilize the performance-optimized d
 To proof that the whole thing is worth it, this repo contains some loading time tests.
 
 Some results are the following.
-Test machine is PC with
+
+Test machine is a PC with
+
 * Windows 10 64bit
 * 8 GB DDR3 1600 Mhz RAM
 * Intel Core i5-4690K @ 3.5 Ghz
 * data loaded from a 1TB HDD
 
+Each measurement was done 30 times and min/max/average values where calculated from `StopWatch` data.
+
 # Small example (1.76kb XML vs 4.47kb SO, same data content) #
-| Format |      min         |        max       |       avg        |
-| ------ | ---------------- | ---------------- | ---------------- |
-| XML    | 00:00:00.0017389 | 00:00:00.0136228 | 00:00:00.0022552 |
-| SO     | 00:00:00.0000866 | 00:00:00.0004697 | 00:00:00.0001085 |
+| Format |        min         |         max        |        avg         |
+| ------ | ------------------ | ------------------ | ------------------ |
+| XML    | `00:00:00.0017389` | `00:00:00.0136228` | `00:00:00.0022552` |
+| SO     | `00:00:00.0000866` | `00:00:00.0004697` | `00:00:00.0001085` |
 
 # Big example (5.24MB XML vs 1.45MB SO, same data content) #
-| Format |      min         |        max       |       avg        |
-| ------ | ---------------- | ---------------- | ---------------- |
-| XML    | 00:00:01.4400673 | 00:00:01.4848626 | 00:00:01.4504397 |
-| SO     | 00:00:00.0000170 | 00:00:00.1129411 | 00:00:00.1057949 |
+| Format |        min         |         max        |        avg         |
+| ------ | ------------------ | ------------------ | ------------------ |
+| XML    | `00:00:01.4400673` | `00:00:01.4848626` | `00:00:01.4504397` |
+| SO     | `00:00:00.0000170` | `00:00:00.1129411` | `00:00:00.1057949` |
