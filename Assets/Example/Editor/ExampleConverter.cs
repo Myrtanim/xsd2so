@@ -8,11 +8,11 @@ namespace Xsd2So.Assets.Example.Editor
 {
 	static class ExampleLoader
 	{
-		[MenuItem("XSD/venetian_blind_test_1/Generate Code", priority = 1)]
+		[MenuItem("XSD/venetian_blind_test_1/Generate Code And Transfer Data", priority = 1)]
 		public static void ConvertFixedAsset()
 		{
-			// Load XSD as text file
-			var path = Application.dataPath + "/Example/XData/venetian_blind_test_1.xsd";
+			// Generate Code
+			var path = Application.dataPath + "/Example/VenetianBlindTest1/XData/venetian_blind_test_1.xsd";
 			var xsd = File.ReadAllText(path);
 
 			var config = new ConverterConfig();
@@ -24,21 +24,12 @@ namespace Xsd2So.Assets.Example.Editor
 			config.SavePathSoCode = PathCombine("Example", "VenetianBlindTest1", "Generated", "rootTypeSO.cs");
 
 			Xsd2So.Generate(config, xsd);
-		}
 
-		public static string PathCombine(params string[] pathElements)
-		{
-			return string.Join(Path.DirectorySeparatorChar.ToString(), pathElements);
-		}
-
-		[MenuItem("XSD/venetian_blind_test_1/Load and transfer data", priority = 2)]
-		public static void LoadAndConvert()
-		{
-			var xmlText = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Example/XData/venetian_blind_test_1.xml");
-
+			// Transfer Data XML -> SO
+			var xmlText = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Example/VenetianBlindTest1/XData/venetian_blind_test_1.xml");
 			if (xmlText == null)
 			{
-				Debug.LogError("Couldn't find XML 'Assets/Example/XData/venetian_blind_test_1.xml'! Aborting.");
+				Debug.LogError("Couldn't find XML 'Assets/Example/VenetianBlindTest1/XData/venetian_blind_test_1.xml'! Aborting.");
 				return;
 			}
 
@@ -60,6 +51,11 @@ namespace Xsd2So.Assets.Example.Editor
 				EditorUtility.FocusProjectWindow();
 				Selection.activeObject = soInstance;
 			}
+		}
+
+		public static string PathCombine(params string[] pathElements)
+		{
+			return string.Join(Path.DirectorySeparatorChar.ToString(), pathElements);
 		}
 	}
 }
