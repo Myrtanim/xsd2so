@@ -10,18 +10,28 @@ namespace Xsd2So
 {
     class GenerationContext
 	{
+		/// <summary>
+		/// The configuration for the code generator to use.
+		/// </summary>
 		public ConverterConfig Config { get; internal set; }
 
 		public XmlSchema XsdSchema { get; internal set; }
 		public XmlSchemas XsdSchemas { get; internal set; }
 
+		/// <summary>
+		/// The code generated from the XSD.
+		/// </summary>
 		public CodeNamespace XmlCode { get; internal set; }
 
+		/// <summary>
+		/// The association of XSD Schema Type and XSD Code Type.
+		/// </summary>
         public IEnumerable<DataRepresentation> XsdCodeMapping { get; internal set; }
 
+		/// <summary>
+		/// Contains the code generated for the ScriptableObject.
+		/// </summary>
         public CodeNamespace ScriptableObjectCode { get; internal set; }
-
-        public CodeNamespaceCollection AdditionalCode { get; internal set; }
 
 		public GenerationContext(ConverterConfig config)
         {
@@ -31,7 +41,6 @@ namespace Xsd2So
             ScriptableObjectCode = new CodeNamespace(config.NamespaceSoClasses);
 
             XsdCodeMapping = new List<DataRepresentation>();
-            AdditionalCode = new CodeNamespaceCollection();
 
 			CheckSoFileName(config.XsdRootElementTypeName, config.SavePathSoCode);
 		}

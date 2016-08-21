@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using UnityEditor;
 using System.Xml.Schema;
 using System.IO;
 using System.Xml.Serialization;
@@ -9,6 +8,7 @@ using Microsoft.CSharp;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System.Globalization;
 
 namespace Xsd2So
 {
@@ -23,10 +23,11 @@ namespace Xsd2So
 			// Check for invalid characters in identifiers
 			//CodeGenerator.ValidateIdentifiers(codeNamespace); // not implemented in Unity's Mono, has to be handwritten
 
-			// Modify types
-			RunCodeModifiers(context);
+			// Generate SO types
+			var createSo = new ScriptableObjectGenerator(context.Config.SoSuffix);
+			createSo.Execute(context);
 
-			// output the C# code
+			// generate the C# source code
 			CSharpCodeProvider codeProvider = new CSharpCodeProvider();
 			var codeGenOptions = new CodeGeneratorOptions();
 			var xmlCode = GenerateCodeFileContent(context.XmlCode, codeProvider, codeGenOptions);
@@ -45,7 +46,7 @@ namespace Xsd2So
 			CompileXsd(context);
 			var typeMappings = GenerateTypeMapping(context);
 			var modifiableTypes = GenerateXsdCode(context, typeMappings);
-			// get only distinct code mappings, because Xsd Elements and Xsd Types can be potantially be the same
+			// get only distinct code mappings, because Xsd Elements and Xsd Types can potantially be the same
 			context.XsdCodeMapping = modifiableTypes.Distinct(new ModifiableRepresentationDuplicateComparer());
 		}
 
@@ -115,7 +116,7 @@ namespace Xsd2So
 		{
 			var repXsd = rep.TypeMapping;
 			string xsdTypeName = repXsd.TypeName;
-			if (xsdTypeName.EndsWith("[]"))
+			if (xsdTypeName.EndsWith("[]", false, CultureInfo.InvariantCulture))
 			{
 				rep.IsArray = true;
 				rep.CodeType = null;
@@ -150,12 +151,5 @@ namespace Xsd2So
 			Directory.CreateDirectory(Path.GetDirectoryName(filePath));
 			File.WriteAllText(filePath, xmlCode.ToString());
 		}
-
-		private static void RunCodeModifiers(GenerationContext context)
-		{
-			// TODO Hardcoded, make it dynamic
-			var createSo = new ScriptableObjectGenerator(context.Config.SoSuffix);
-            createSo.Execute(context);
-        }
     }
 }
