@@ -15,19 +15,21 @@ namespace Xsd2So.Assets.Example.Editor
 		[MenuItem("XSD/venetian_blind_test_1/Generate Code And Transfer Data", priority = 1)]
 		public static void ConvertFixedAsset1()
 		{
-			// == Generate the code from an XSD =====
+			// == Generate the code from the XSD =====
 			// Read in the XSD file
 			var path = Application.dataPath + "/Example/VenetianBlindTest1/XData/test.xsd";
 			var xsd = File.ReadAllText(path);
 
 			// Set up configuration.
-			var config = new ConverterConfig();
-			config.NamespaceXsdClasses = "Example.VenetianBlindTest1.Generated.Editor";
-			config.NamespaceSoClasses = "Example.VenetianBlindTest1.Generated";
-			config.XsdRootElementTypeName = "rootType";
-			config.XmlRootNodeName = "root";
-			config.SavePathXsdCode = PathCombine("Example", "VenetianBlindTest1", "Generated", "Editor", "XmlData_VenetianBlindTest1.cs");
-			config.SavePathSoCode = PathCombine("Example", "VenetianBlindTest1", "Generated", "rootTypeSO.cs");
+			var config = new ConverterConfig() {
+				NamespaceXsdClasses = "Example.VenetianBlindTest1.Generated.Editor",
+				NamespaceSoClasses = "Example.VenetianBlindTest1.Generated",
+				XsdRootElementTypeName = "rootType",
+				XmlRootNodeName = "root",
+				// the following paths are relative to your Assets folder!
+				SavePathXsdCode = "Example/VenetianBlindTest1/Generated/Editor/XmlData_VenetianBlindTest1.cs",
+				SavePathSoCode = "Example/VenetianBlindTest1/Generated/rootTypeSO.cs"
+			};
 
 			// Generate code.
 			// The result is directly saved to file. See config.SavePathXsdCode and config.SavePathSoCode.
@@ -42,7 +44,7 @@ namespace Xsd2So.Assets.Example.Editor
 				return;
 			}
 
-			// Read in text and make it available as a XML.
+			// Read in XML.
 			using (var xmlReader = new XmlTextReader(new StringReader(xmlText.text)))
 			{
 				xmlReader.Namespaces = true;
@@ -83,13 +85,14 @@ namespace Xsd2So.Assets.Example.Editor
 			var path = Application.dataPath + "/Example/VenetianBlindTest2/XData/test.xsd";
 			var xsd = File.ReadAllText(path);
 
-			var config = new ConverterConfig();
-			config.NamespaceXsdClasses = "Example.VenetianBlindTest2.Generated.Editor";
-			config.NamespaceSoClasses = "Example.VenetianBlindTest2.Generated";
-			config.XsdRootElementTypeName = "rootType";
-			config.XmlRootNodeName = "root";
-			config.SavePathXsdCode = PathCombine("Example", "VenetianBlindTest2", "Generated", "Editor", "XmlData_VenetianBlindTest2.cs");
-			config.SavePathSoCode = PathCombine("Example", "VenetianBlindTest2", "Generated", "rootTypeSO.cs");
+			var config = new ConverterConfig() {
+				NamespaceXsdClasses = "Example.VenetianBlindTest2.Generated.Editor",
+				NamespaceSoClasses = "Example.VenetianBlindTest2.Generated",
+				XsdRootElementTypeName = "rootType",
+				XmlRootNodeName = "root",
+				SavePathXsdCode = "Example/VenetianBlindTest2/Generated/Editor/XmlData_VenetianBlindTest2.cs",
+				SavePathSoCode = "Example/VenetianBlindTest2/Generated/rootTypeSO.cs"
+			};
 
 			Xsd2So.Generate(config, xsd);
 
@@ -224,11 +227,6 @@ namespace Xsd2So.Assets.Example.Editor
 		{
 			var averageXmlTime = allXmlTimes.Average(timeSpan => timeSpan.Ticks);
 			return new TimeSpan(Convert.ToInt64(averageXmlTime));
-		}
-
-		public static string PathCombine(params string[] pathElements)
-		{
-			return string.Join(Path.DirectorySeparatorChar.ToString(), pathElements);
 		}
 	}
 }
