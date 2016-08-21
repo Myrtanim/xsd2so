@@ -1,15 +1,14 @@
 # Xsd2So #
 
-This provides a tool to generate [Unity ScriptableObjects](http://docs.unity3d.com/Manual/class-ScriptableObject.html) from an XSD and also provides parsing capabilities, so you can easily parse the content of a matching XML into the ScriptableObject.
+This provides a tool to generate [Unity ScriptableObjects](http://docs.unity3d.com/Manual/class-ScriptableObject.html) (SO) from an XSD and also provides parsing capabilities, so you can easily parse the content of a matching XML into the SO.
 
 So this projects fuses [XML data binding](https://en.wikipedia.org/wiki/XML_data_binding) with Unity's native serialization capabilities.
 
 ### What is this repository for? ###
 
 * generate C# code from XSD
-* generate matching C# code, which is a ScriptableObject
-* also generates parsing of XML data to a ScriptableObject instance
-* 0.5.0
+* generate matching SO code (in C#)
+* also generates parsing of XML data to a SO instance
 
 ### How do I get set up? ###
 
@@ -17,14 +16,22 @@ So this projects fuses [XML data binding](https://en.wikipedia.org/wiki/XML_data
 * Import the package in your project
 * create an editor script to use Xsd2So, see [`ExampleConverter.ConvertFixedAsset1()`](https://bitbucket.org/Myrtanim/xsd2so/src/ffd2c0d59dafabec3d26dc55010d2ceec0f91dbf/Assets/Example/Editor/ExampleConverter.cs?at=default&fileviewer=file-view-default) for more details
 
+or
+
+* clone the repository
+* open in Unity 5.3.4 or later
+
 ### Contribution guidelines ###
 
 **If you have an idea or want to suggest an improvement:**
 
 Either
 
-* create an [issue](https://bitbucket.org/Myrtanim/xsd2so/issues) or
 * fork, modify an create a pull request.
+
+or
+
+* create an [issue](https://bitbucket.org/Myrtanim/xsd2so/issues)
 
 **If you found a bug:**
 
