@@ -15,10 +15,12 @@ namespace Xsd2So.Assets.Example.Editor
 		[MenuItem("XSD/venetian_blind_test_1/Generate Code And Transfer Data", priority = 1)]
 		public static void ConvertFixedAsset1()
 		{
-			// Generate Code
+			// == Generate the code from an XSD =====
+			// Read in the XSD file
 			var path = Application.dataPath + "/Example/VenetianBlindTest1/XData/test.xsd";
 			var xsd = File.ReadAllText(path);
 
+			// Set up configuration.
 			var config = new ConverterConfig();
 			config.NamespaceXsdClasses = "Example.VenetianBlindTest1.Generated.Editor";
 			config.NamespaceSoClasses = "Example.VenetianBlindTest1.Generated";
@@ -27,9 +29,12 @@ namespace Xsd2So.Assets.Example.Editor
 			config.SavePathXsdCode = PathCombine("Example", "VenetianBlindTest1", "Generated", "Editor", "XmlData_VenetianBlindTest1.cs");
 			config.SavePathSoCode = PathCombine("Example", "VenetianBlindTest1", "Generated", "rootTypeSO.cs");
 
+			// Generate code.
+			// The result is directly saved to file. See config.SavePathXsdCode and config.SavePathSoCode.
 			Xsd2So.Generate(config, xsd);
 
-			// Transfer Data XML -> SO
+			// == Transfer data from XML to SO =====
+			// Load the XML as a text asset. You can also use File.ReadAllText(...).
 			var xmlText = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Example/VenetianBlindTest1/XData/test.xml");
 			if (xmlText == null)
 			{
@@ -37,18 +42,23 @@ namespace Xsd2So.Assets.Example.Editor
 				return;
 			}
 
+			// Read in text and make it available as a XML.
 			using (var xmlReader = new XmlTextReader(new StringReader(xmlText.text)))
 			{
 				xmlReader.Namespaces = true;
 
+				// Convert the XML content to a C# object. This C# object is the XML code generated from the Xsd2So.
 				var xmlClassesType = typeof(global::Example.VenetianBlindTest1.Generated.Editor.rootType);
 				XmlSerializer serializer = new XmlSerializer(xmlClassesType);
 				var xmlData = (global::Example.VenetianBlindTest1.Generated.Editor.rootType)serializer.Deserialize(xmlReader);
 
+				// Create the matching ScriptableObject object. This SO object is also an instance of the SO code generated from Xsd2So.
 				var soInstance = ScriptableObject.CreateInstance<global::Example.VenetianBlindTest1.Generated.rootTypeSO>();
 
+				// Copy all data from the XML object to the SO object. The generated code takes care of all the details.
 				xmlData.ToSerializable(soInstance);
 
+				// Finally, save the SO object as an asset and select it in Unity.
 				Directory.CreateDirectory("Assets/Example/VenetianBlindTest1/Resources");
 				AssetDatabase.CreateAsset(soInstance, "Assets/Example/VenetianBlindTest1/Resources/rootSO1.asset");
 				AssetDatabase.SaveAssets();
