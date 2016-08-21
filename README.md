@@ -43,6 +43,10 @@ I try to answer it as soon as possible, but it can still take a while.
 
 * [Myrtanim](https://bitbucket.org/Myrtanim/)
 
+### License ###
+
+Xsd2So is released under an MIT/X11 license; see the LICENSE file.
+
 ### Performance measurements ###
 This whole project has the main intention to utilize the performance-optimized deserialization from Unity.
 To proof that the whole thing is worth it, this repo contains some loading time tests, see the XSD menu of this project in Unity.
