@@ -6,3 +6,5 @@ Temp/
 .vs/
 .idea/*
 obj/*
+Assets/Plugins/Editor/Rider*
+xsd2so.userprefs
