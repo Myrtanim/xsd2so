@@ -8,3 +8,4 @@ Temp/
 obj/*
 Assets/Plugins/Editor/Rider*
 xsd2so.userprefs
+*.unitypackage
