@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.myrtanim.de"
+           xmlns="http://www.myrtanim.de"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+
+  <!--
+    Notes to this XSD example:
+      - is in Venetian Blind style
+      - has enumerations
+      - has usage of required and optional attributes with and without default values
+      - uses elements with text contet
+      - uses type inheritance (baseAnimal -> herbivor/carnivor)
+  -->
+
+  <xs:element name="root" type="rootType"/>
+
+  <xs:simpleType name="plantTypes">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="roots" />
+      <xs:enumeration value="trees" />
+      <xs:enumeration value="herbs" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="rootType">
+    <xs:sequence>
+      <xs:element name="version" type="versionData"/>
+      <xs:element name="animals" type="animalDefinitions" minOccurs="0" maxOccurs="10"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="versionData">
+    <xs:sequence>
+      <xs:element name="date" type="xs:dateTime" minOccurs="0" />
+      <xs:element name="major" type="xs:int" />
+      <xs:element name="minor" type="xs:int" />
+      <xs:element name="fix" type="xs:int" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="animalDefinitions">
+    <xs:choice minOccurs="1" maxOccurs="unbounded">
+      <xs:element name="herbivor" type="herbivorType" />
+      <xs:element name="carnivor" type="carnivorType" />
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="baseAnimal">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string" minOccurs="0"/>
+      <xs:element name="attributeLevels" type="attributeLevels"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="size" type="sizeCategory"/>
+  </xs:complexType>
+
+  <xs:complexType name="herbivorType">
+    <xs:complexContent>
+      <xs:extension base="baseAnimal">
+        <xs:attribute name="favoritePlantType" type="plantTypes" default="herbs" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="carnivorType">
+    <xs:complexContent>
+      <xs:extension base="baseAnimal">
+        <xs:attribute name="favoriteHerbivor" type="xs:string" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="attributeLevels">
+    <xs:sequence>
+      <xs:element name="level" type="attributeLevel" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="attributeLevel">
+    <xs:attribute name="level" type="xs:int" use="required"/>
+    <xs:attribute name="strength" type="xs:byte" use="required"/>
+    <xs:attribute name="speed" type="xs:byte" use="required"/>
+    <xs:attribute name="hitPoints" type="xs:int" use="required"/>
+    <xs:attribute name="canFly" type="xs:boolean" default="false"/>
+  </xs:complexType>
+</xs:schema>

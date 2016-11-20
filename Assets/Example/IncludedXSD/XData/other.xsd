@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" attributeFormDefault="unqualified" elementFormDefault="qualified">
+
+  <xs:simpleType name="buffHierarchyType" final="restriction">
+    <xs:restriction base="xs:string">
+        <xs:enumeration value="ALLIANCE"/>
+        <xs:enumeration value="PLAYER"/>
+        <xs:enumeration value="FARM"/>
+        <xs:enumeration value="BUILDING_CATEGORY"/>
+        <xs:enumeration value="BUILDING_GROUP"/>
+        <xs:enumeration value="BUILDING"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="buffType">
+    <xs:attribute type="buffHierarchyType" name="hierarchy" default="PLAYER"/>
+    <xs:attribute type="xs:int" name="hierarchyId" use="optional"/>
+    <xs:attribute type="xs:int" name="targetId" use="optional"/>
+    <xs:attribute type="xs:double" name="addition" use="optional"/>
+  </xs:complexType>
+</xs:schema>

@@ -133,7 +133,65 @@ namespace Xsd2So.Assets.Example.Editor
 			>(30, "Assets/Example/VenetianBlindTest2/XData/test.xml", "rootSO2");
 		}
 
-		private static void MultiLoadingPerformanceTest<TXmlClass, TSoClass>(
+	    [MenuItem("XSD/Included XSD/Generate Code And Transfer Data", priority = 3)]
+	    public static void ConvertIncludedXsd()
+	    {
+	        // == Generate the code from the XSD =====
+	        // Read in the XSD file
+	        var path = Application.dataPath + "/Example/IncludedXSD/XData/main.xsd";
+	        var xsd = File.ReadAllText(path);
+
+	        // Set up configuration.
+	        var config = new ConverterConfig() {
+	            XsdSearchPath = "Assets/Example/IncludedXSD/XData",
+	            NamespaceXsdClasses = "Example.IncludedXsd.Generated.Editor",
+	            NamespaceSoClasses = "Example.IncludedXsd.Generated",
+	            XsdRootElementTypeName = "buildingsType",
+	            XmlRootNodeName = "buildings",
+	            // the following paths are relative to your Assets folder!
+	            SavePathXsdCode = "Example/IncludedXSD/Generated/Editor/XmlData_IncludedXSD.cs",
+	            SavePathSoCode = "Example/IncludedXSD/Generated/buildingsTypeSO.cs"
+	        };
+
+	        // Generate code.
+	        // The result is directly saved to file. See config.SavePathXsdCode and config.SavePathSoCode.
+	        Xsd2So.Generate(config, xsd);
+
+	        // == Transfer data from XML to SO =====
+	        // Load the XML as a text asset. You can also use File.ReadAllText(...).
+	        var xmlText = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Example/VenetianBlindTest1/XData/test.xml");
+	        if (xmlText == null)
+	        {
+	            UnityEngine.Debug.LogError("Couldn't find XML 'Assets/Example/VenetianBlindTest1/XData/test.xml'! Aborting.");
+	            return;
+	        }
+
+	        // Read in XML.
+	        using (var xmlReader = new XmlTextReader(new StringReader(xmlText.text)))
+	        {
+	            xmlReader.Namespaces = true;
+
+	            // Convert the XML content to a C# object. This C# object is the XML code generated from the Xsd2So.
+	            var xmlClassesType = typeof(global::Example.VenetianBlindTest1.Generated.Editor.rootType);
+	            XmlSerializer serializer = new XmlSerializer(xmlClassesType);
+	            var xmlData = (global::Example.VenetianBlindTest1.Generated.Editor.rootType)serializer.Deserialize(xmlReader);
+
+	            // Create the matching ScriptableObject object. This SO object is also an instance of the SO code generated from Xsd2So.
+	            var soInstance = ScriptableObject.CreateInstance<global::Example.VenetianBlindTest1.Generated.rootTypeSO>();
+
+	            // Copy all data from the XML object to the SO object. The generated code takes care of all the details.
+	            xmlData.ToSerializable(soInstance);
+
+	            // Finally, save the SO object as an asset and select it in Unity.
+	            Directory.CreateDirectory("Assets/Example/VenetianBlindTest1/Resources");
+	            AssetDatabase.CreateAsset(soInstance, "Assets/Example/VenetianBlindTest1/Resources/rootSO1.asset");
+	            AssetDatabase.SaveAssets();
+	            EditorUtility.FocusProjectWindow();
+	            Selection.activeObject = soInstance;
+	        }
+	    }
+
+	    private static void MultiLoadingPerformanceTest<TXmlClass, TSoClass>(
 			int iterations,
 			string xmlPath, string soPath)
 			where TSoClass : ScriptableObject

@@ -1,8 +1,12 @@
 ﻿using System;
 using System.CodeDom;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Text;
+using System.Xml;
+using System.Xml.Schema;
 
 namespace Xsd2So
 {
@@ -23,7 +27,7 @@ namespace Xsd2So
 
 			// Step 1:
 			// Generate all SO types without their members, so that we have all required types available.
-			foreach (var xsdType in ctx.XsdCodeMapping)
+			foreach (DataRepresentation xsdType in ctx.XsdCodeMapping)
 			{
 				var copiedType = CreateSoType(xsdType.CodeType, ctx);
 				xsdTypeNameToSoTypeDecl.Add(xsdType.CodeType.Name, copiedType);
@@ -36,11 +40,11 @@ namespace Xsd2So
 
 			// Step 2:
 			// Generate members of SO types and replace XSD member types with their SO equivalents.
-            foreach (var xsdType in ctx.XsdCodeMapping)
+            foreach (DataRepresentation xsdType in ctx.XsdCodeMapping)
             {
 				if (!xsdType.CodeType.IsEnum)
 				{
-					var soType = CopyMembers(xsdType.CodeType, xsdTypeNameToSoTypeDecl);
+					CodeTypeDeclaration soType = CopyMembers(xsdType.CodeType, xsdTypeNameToSoTypeDecl);
 					CreateCopyMethod(soType, xsdType.CodeType, xsdTypeNameToSoTypeDecl, ctx);
 
 					ctx.ScriptableObjectCode.Types.Add(soType);

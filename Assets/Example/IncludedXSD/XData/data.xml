@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<buildings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="main.xsd">
+  <building id="4" name="mainFarmFence" hierarchyType="PLAYER">
+    <stage level="1" buyable="0">
+      <constrLimit>Test 1A</constrLimit>
+      <constrCost>1</constrCost>
+    </stage>
+    <stage level="2" buyable="0">
+      <constrLimit>Test 1B</constrLimit>
+      <constrCost>2</constrCost>
+    </stage>
+  </building>
+  <building id="5" name="gate" hierarchyType="FARM">
+    <stage level="1" buyable="0">
+      <constrLimit>Test 2A</constrLimit>
+      <constrCost>3</constrCost>
+    </stage>
+    <stage level="2" buyable="0">
+      <constrLimit>Test 2B</constrLimit>
+      <constrCost>4</constrCost>
+    </stage>
+  </building>
+</buildings>
