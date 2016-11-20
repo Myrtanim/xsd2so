@@ -12,7 +12,7 @@ So this projects fuses [XML data binding](https://en.wikipedia.org/wiki/XML_data
 
 ### How do I get set up? ###
 
-* Download the [Unity package](https://bitbucket.org/Myrtanim/xsd2so/downloads/xsd2so.unitypackage) from this repository
+* Download the most recent [Unity package](https://bitbucket.org/Myrtanim/xsd2so/downloads) from this repository
 * Import the package in your project
 * create an editor script to use Xsd2So, see [`ExampleConverter.ConvertFixedAsset1()`](https://bitbucket.org/Myrtanim/xsd2so/src/ffd2c0d59dafabec3d26dc55010d2ceec0f91dbf/Assets/Example/Editor/ExampleConverter.cs?at=default&fileviewer=file-view-default) for more details
 
