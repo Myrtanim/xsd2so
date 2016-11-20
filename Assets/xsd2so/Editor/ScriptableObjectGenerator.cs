@@ -1,8 +1,12 @@
 ﻿using System;
 using System.CodeDom;
+using System.Collections;
 using System.Linq;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Text;
+using System.Xml;
+using System.Xml.Schema;
 
 namespace Xsd2So
 {
@@ -23,7 +27,7 @@ namespace Xsd2So
 
 			// Step 1:
 			// Generate all SO types without their members, so that we have all required types available.
-			foreach (var xsdType in ctx.XsdCodeMapping)
+			foreach (DataRepresentation xsdType in ctx.XsdCodeMapping)
 			{
 				var copiedType = CreateSoType(xsdType.CodeType, ctx);
 				xsdTypeNameToSoTypeDecl.Add(xsdType.CodeType.Name, copiedType);
@@ -36,11 +40,11 @@ namespace Xsd2So
 
 			// Step 2:
 			// Generate members of SO types and replace XSD member types with their SO equivalents.
-            foreach (var xsdType in ctx.XsdCodeMapping)
+            foreach (DataRepresentation xsdType in ctx.XsdCodeMapping)
             {
 				if (!xsdType.CodeType.IsEnum)
 				{
-					var soType = CopyMembers(xsdType.CodeType, xsdTypeNameToSoTypeDecl);
+					CodeTypeDeclaration soType = CopyMembers(xsdType.CodeType, xsdTypeNameToSoTypeDecl);
 					CreateCopyMethod(soType, xsdType.CodeType, xsdTypeNameToSoTypeDecl, ctx);
 
 					ctx.ScriptableObjectCode.Types.Add(soType);
@@ -107,6 +111,45 @@ namespace Xsd2So
 						}
 						else
 						{
+						    var name = new XmlQualifiedName(xsdType.Name, ctx.XsdSchema.TargetNamespace);
+						    var xsdSchemaType = ctx.XsdSchema.SchemaTypes[name];
+						    if (xsdSchemaType == null)
+						    {
+						        var sb = new StringBuilder("Type for '"+xsdType.Name+"' not found! Available types:\n");
+						        foreach (DictionaryEntry xObj in ctx.XsdSchema.SchemaTypes)
+						        {
+						            sb.AppendLine("\t" + xObj.Key + " -> " + xObj.Value);
+						        }
+						        Debug.Log(sb.ToString());
+						    }
+						    else
+						    {
+						        if (xsdSchemaType is XmlSchemaComplexType)
+						        {
+						            var xsdCmplxT = xsdSchemaType as XmlSchemaComplexType;
+						            //xsdCmplxT.Particle.MinOccurs; // the partical can also have MinOccurs = 0!
+									if (xsdCmplxT.Particle is XmlSchemaSequence) // can also be choice or all
+									{
+									    var seq = xsdCmplxT.Particle as XmlSchemaSequence;
+									    foreach (var seqItem in seq.Items)
+									    {
+									        Debug.Log(seqItem);
+											if (seqItem is XmlSchemaElement)
+											{
+											    var seqElement = seqItem as XmlSchemaElement;
+											    if (seqElement.Name == xsdMemberCodeDeclaration.Name)
+											    {
+											        if (seqElement.MinOccurs == 0)
+											        {
+											            // object member can be null!
+											        }
+											    }
+											}
+									    }
+									}
+						        }
+						    }
+
 							if (xsdProperty.Type.ArrayRank == 0) // handle normal members with Xsd types
 							{
 								// first, create a new object of the SO field, to prevent NPE
