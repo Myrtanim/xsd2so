@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" attributeFormDefault="unqualified" elementFormDefault="qualified">
+  <xs:include schemaLocation="other.xsd"/>
+
+  <!-- Root element -->
+  <xs:element name="buildings" type="buildingsType"/>
+
+  <!-- Root element type -->
+  <xs:complexType name="buildingsType">
+    <xs:sequence>
+      <xs:element type="buildingType" name="building" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="buildingType">
+    <xs:sequence>
+      <xs:element type="stageType" name="stage" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute type="xs:int" name="id"/>
+    <xs:attribute type="xs:string" name="name"/>
+    <xs:attribute type="buffHierarchyType" name="hierarchyType" />
+  </xs:complexType>
+
+  <xs:complexType name="stageType">
+    <xs:sequence>
+      <xs:element type="xs:string" name="constrLimit"/>
+      <xs:element type="xs:int" name="constrCost"/>
+    </xs:sequence>
+    <xs:attribute type="xs:int" name="level"/>
+    <xs:attribute type="xs:boolean" name="buyable"/>
+  </xs:complexType>
+</xs:schema>

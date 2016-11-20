@@ -111,45 +111,6 @@ namespace Xsd2So
 						}
 						else
 						{
-						    var name = new XmlQualifiedName(xsdType.Name, ctx.XsdSchema.TargetNamespace);
-						    var xsdSchemaType = ctx.XsdSchema.SchemaTypes[name];
-						    if (xsdSchemaType == null)
-						    {
-						        var sb = new StringBuilder("Type for '"+xsdType.Name+"' not found! Available types:\n");
-						        foreach (DictionaryEntry xObj in ctx.XsdSchema.SchemaTypes)
-						        {
-						            sb.AppendLine("\t" + xObj.Key + " -> " + xObj.Value);
-						        }
-						        Debug.Log(sb.ToString());
-						    }
-						    else
-						    {
-						        if (xsdSchemaType is XmlSchemaComplexType)
-						        {
-						            var xsdCmplxT = xsdSchemaType as XmlSchemaComplexType;
-						            //xsdCmplxT.Particle.MinOccurs; // the partical can also have MinOccurs = 0!
-									if (xsdCmplxT.Particle is XmlSchemaSequence) // can also be choice or all
-									{
-									    var seq = xsdCmplxT.Particle as XmlSchemaSequence;
-									    foreach (var seqItem in seq.Items)
-									    {
-									        Debug.Log(seqItem);
-											if (seqItem is XmlSchemaElement)
-											{
-											    var seqElement = seqItem as XmlSchemaElement;
-											    if (seqElement.Name == xsdMemberCodeDeclaration.Name)
-											    {
-											        if (seqElement.MinOccurs == 0)
-											        {
-											            // object member can be null!
-											        }
-											    }
-											}
-									    }
-									}
-						        }
-						    }
-
 							if (xsdProperty.Type.ArrayRank == 0) // handle normal members with Xsd types
 							{
 								// first, create a new object of the SO field, to prevent NPE

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Xml.Schema;
 using System.IO;
 using System.Xml.Serialization;
@@ -9,6 +10,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Globalization;
+using UnityEditor;
 
 namespace Xsd2So
 {
@@ -101,18 +103,74 @@ namespace Xsd2So
 		{
 			context.XsdSchemas = new XmlSchemas();
 			context.XsdSchemas.Add(context.XsdSchema);
-			context.XsdSchemas.Compile(null, true);
+			context.XsdSchemas.Compile(ValidationEventHandler, true);
 		}
 
 		private static void ParseXsd(string content, GenerationContext context)
 		{
 			using (var stream = new StringReader(content))
 			{
-				context.XsdSchema = XmlSchema.Read(stream, null);
+				context.XsdSchema = XmlSchema.Read(stream, ValidationEventHandler);
 			}
+
+		    // We need to replace the <xs:include schemaLocation="..."> paths, since the XsdSchemas.Compile(...) uses
+		    // the assemblys process path. This path default to the Unity projects base folder (the one containing
+		    // Assets, Library and so on), when this is run via an editor script.
+		    // But normally schemaLocation is a relative path starting from the XSDs localtion where the include tag
+		    // is in.
+		    // To still allow including XSDs with relative paths, we need to adjust them.
+		    foreach (var include in context.XsdSchema.Includes)
+		    {
+		        if (include is XmlSchemaExternal)
+		        {
+		            var usefulInclude = (include as XmlSchemaExternal);
+
+		            if (Path.IsPathRooted(usefulInclude.SchemaLocation))
+		            {
+		                // The include tag uses a absolut path. No need to change anything.
+		                continue;
+		            }
+
+		            var xsdFileName = Path.GetFileNameWithoutExtension(usefulInclude.SchemaLocation);
+		            var xsdGuid = AssetDatabase.FindAssets(xsdFileName, new [] {context.Config.XsdSearchPath});
+		            if (xsdGuid.Length == 1)
+		            {
+		                var includedXsdFullPath = AssetDatabase.GUIDToAssetPath(xsdGuid[0]);
+		                Debug.Log("Replacing relative XSD include path '" + usefulInclude.SchemaLocation + "' with '" + includedXsdFullPath + "'.");
+		                usefulInclude.SchemaLocation = includedXsdFullPath;
+		            }
+		            else
+		            {
+		                Debug.LogError("Found " + xsdGuid.Length + " candidates for '" + xsdFileName + "' (derived from '"+usefulInclude.SchemaLocation+"'). " +
+		                               "Please adjust your value for ConverterConfig.XsdSearchPath " +
+		                               "or move the XSD to somewhere else so that exactly one match is found.");
+		            }
+		        }
+		        else
+		        {
+		            Debug.LogWarning("There is an include directive used in the given XSD, which is not convertable to a System.Xml.Schema.XmlSchemaExternal object.\n" +
+		                             "It is a " + include + ". Maybe the included XSD can not be loaded because of path errors.");
+		        }
+		    }
 		}
 
-		private static void AssociateXsdTypeWithCodeType(DataRepresentation rep, CodeNamespace codeNamespace)
+	    private static void ValidationEventHandler(object sender, ValidationEventArgs args)
+	    {
+	        var msg = string.Format("Validation message:\n\t{0}\n\tseverity = {1}\n\texception = {2}", args.Message,
+	            args.Severity, args.Exception);
+
+	        switch (args.Severity)
+	        {
+	            case XmlSeverityType.Warning:
+	                Debug.LogWarning(msg);
+	                break;
+	            case XmlSeverityType.Error:
+	                Debug.LogError(msg);
+	                break;
+	        }
+	    }
+
+	    private static void AssociateXsdTypeWithCodeType(DataRepresentation rep, CodeNamespace codeNamespace)
 		{
 			var repXsd = rep.TypeMapping;
 			string xsdTypeName = repXsd.TypeName;
