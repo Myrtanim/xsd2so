@@ -159,10 +159,10 @@ namespace Xsd2So.Assets.Example.Editor
 
 	        // == Transfer data from XML to SO =====
 	        // Load the XML as a text asset. You can also use File.ReadAllText(...).
-	        var xmlText = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Example/VenetianBlindTest1/XData/test.xml");
+	        var xmlText = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Example/IncludedXSD/XData/data.xml");
 	        if (xmlText == null)
 	        {
-	            UnityEngine.Debug.LogError("Couldn't find XML 'Assets/Example/VenetianBlindTest1/XData/test.xml'! Aborting.");
+	            UnityEngine.Debug.LogError("Couldn't find XML 'Assets/Example/IncludedXSD/XData/data.xml'! Aborting.");
 	            return;
 	        }
 
@@ -172,19 +172,19 @@ namespace Xsd2So.Assets.Example.Editor
 	            xmlReader.Namespaces = true;
 
 	            // Convert the XML content to a C# object. This C# object is the XML code generated from the Xsd2So.
-	            var xmlClassesType = typeof(global::Example.VenetianBlindTest1.Generated.Editor.rootType);
+	            var xmlClassesType = typeof(global::Example.IncludedXsd.Generated.Editor.buildingsType);
 	            XmlSerializer serializer = new XmlSerializer(xmlClassesType);
-	            var xmlData = (global::Example.VenetianBlindTest1.Generated.Editor.rootType)serializer.Deserialize(xmlReader);
+	            var xmlData = (global::Example.IncludedXsd.Generated.Editor.buildingsType)serializer.Deserialize(xmlReader);
 
 	            // Create the matching ScriptableObject object. This SO object is also an instance of the SO code generated from Xsd2So.
-	            var soInstance = ScriptableObject.CreateInstance<global::Example.VenetianBlindTest1.Generated.rootTypeSO>();
+	            var soInstance = ScriptableObject.CreateInstance<global::Example.IncludedXsd.Generated.buildingsTypeSO>();
 
 	            // Copy all data from the XML object to the SO object. The generated code takes care of all the details.
 	            xmlData.ToSerializable(soInstance);
 
 	            // Finally, save the SO object as an asset and select it in Unity.
-	            Directory.CreateDirectory("Assets/Example/VenetianBlindTest1/Resources");
-	            AssetDatabase.CreateAsset(soInstance, "Assets/Example/VenetianBlindTest1/Resources/rootSO1.asset");
+	            Directory.CreateDirectory("Assets/Example/IncludedXSD/Resources");
+	            AssetDatabase.CreateAsset(soInstance, "Assets/Example/IncludedXSD/Resources/buildingsSO.asset");
 	            AssetDatabase.SaveAssets();
 	            EditorUtility.FocusProjectWindow();
 	            Selection.activeObject = soInstance;
