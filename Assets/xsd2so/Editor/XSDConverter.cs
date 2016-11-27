@@ -83,7 +83,7 @@ namespace Xsd2So
                 var type = schemaImporter.ImportSchemaType(schemaType.QualifiedName);
                 var typeRep = new DataRepresentation
                 {
-                    XsdType = schemaType,
+                    XsdDefinition = schemaType,
                     TypeMapping = type
                 };
 
@@ -96,7 +96,7 @@ namespace Xsd2So
                 var type = schemaImporter.ImportTypeMapping(schemaElement.QualifiedName);
                 var typeRep = new DataRepresentation
                 {
-                    XsdType = schemaElement,
+                    XsdDefinition = schemaElement,
                     TypeMapping = type
                 };
 

@@ -7,26 +7,26 @@ namespace Xsd2So
 {
     public class DataRepresentation
     {
-        public XmlSchemaAnnotated XsdType { get; set; }
         public XmlTypeMapping TypeMapping { get; set; }
         public CodeTypeDeclaration CodeType { get; set; }
+        public XmlSchemaAnnotated XsdDefinition { get; set; }
 
         public bool IsArray { get; internal set; }
 
         public bool IsComplexXsdType
         {
-            get { return XsdType is XmlSchemaComplexType; }
+            get { return XsdDefinition is XmlSchemaComplexType; }
         }
     }
 
 //	public class DataTypeRepresentation : DataRepresentation
 //	{
-//		public XmlSchemaType XsdType { get; set; }
+//		public XmlSchemaType XsdDefinition { get; set; }
 //	}
 //
 //	public class DataElementRepresentation : DataRepresentation
 //	{
-//		public XmlSchemaElement XsdType { get; set; }
+//		public XmlSchemaElement XsdDefinition { get; set; }
 //	}
 
     class ModifiableRepresentationDuplicateComparer : IEqualityComparer<DataRepresentation>

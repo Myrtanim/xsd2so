@@ -202,6 +202,71 @@ namespace Xsd2So.Assets.Example.Editor
             }
         }
 
+        [MenuItem("XSD/Optional Complex Elements/Generate Code And Transfer Data", priority = 4)]
+        public static void ConvertOptionalComplexElements()
+        {
+            // == Generate the code from the XSD =====
+            // Read in the XSD file
+            var path = Application.dataPath + "/Example/OptionalComplexTypes/XData/test.xsd";
+            var xsd = File.ReadAllText(path);
+
+            // Set up configuration.
+            var config = new ConverterConfig()
+            {
+                XsdSearchPath = "Assets/Example/OptionalComplexTypes/XData",
+                NamespaceXsdClasses = "Example.OptionalComplexTypes.Generated.Editor",
+                NamespaceSoClasses = "Example.OptionalComplexTypes.Generated",
+                XsdRootElementTypeName = "rootType",
+                XmlRootNodeName = "root",
+                // the following paths are relative to your Assets folder!
+                SavePathXsdCode = "Example/OptionalComplexTypes/Generated/Editor/XmlData_OptionalComplexTypesXSD.cs",
+                SavePathSoCode = "Example/OptionalComplexTypes/Generated/rootTypeSO.cs"
+            };
+
+            // Generate code.
+            // The result is directly saved to file. See config.SavePathXsdCode and config.SavePathSoCode.
+            Xsd2So.Generate(config, xsd);
+
+            // == Transfer data from XML to SO =====
+            // Load the XML as a text asset. You can also use File.ReadAllText(...).
+            var xmlText = AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Example/OptionalComplexTypes/XData/test.xml");
+            if (xmlText == null)
+            {
+                UnityEngine.Debug.LogError("Couldn't find XML 'Assets/Example/OptionalComplexTypes/XData/test.xml'! Aborting.");
+                return;
+            }
+
+            // Read in XML.
+            using (var xmlReader = new XmlTextReader(new StringReader(xmlText.text)))
+            {
+                xmlReader.Namespaces = true;
+
+                // Convert the XML content to a C# object. This C# object is the XML code generated from the Xsd2So.
+//                var xmlClassesType = typeof(global::Example.IncludedXsd.Generated.Editor.buildingsType);
+//                XmlSerializer serializer = new XmlSerializer(xmlClassesType);
+//                var xmlData =
+//                    (global::Example.IncludedXsd.Generated.Editor.buildingsType) serializer.Deserialize(xmlReader);
+
+                // Create the matching ScriptableObject object. This SO object is also an instance of the SO code generated from Xsd2So.
+//                var soInstance =
+//                    ScriptableObject.CreateInstance<global::Example.IncludedXsd.Generated.buildingsTypeSO>();
+
+                // Copy all data from the XML object to the SO object. The generated code takes care of all the details.
+//                xmlData.ToSerializable(soInstance);
+
+                // Finally, save the SO object as an asset and select it in Unity.
+//                Directory.CreateDirectory("Assets/Example/OptionalComplexTypes/Resources");
+//                AssetDatabase.CreateAsset(soInstance, "Assets/Example/OptionalComplexTypes/Resources/rootTypeSO.asset");
+//                AssetDatabase.SaveAssets();
+//                EditorUtility.FocusProjectWindow();
+//                Selection.activeObject = soInstance;
+            }
+
+            AssetDatabase.Refresh();
+        }
+
+        #region Helper methods
+
         private static void MultiLoadingPerformanceTest<TXmlClass, TSoClass>(
             int iterations,
             string xmlPath, string soPath)
@@ -298,5 +363,7 @@ namespace Xsd2So.Assets.Example.Editor
             var averageXmlTime = allXmlTimes.Average(timeSpan => timeSpan.Ticks);
             return new TimeSpan(Convert.ToInt64(averageXmlTime));
         }
+
+        #endregion
     }
 }

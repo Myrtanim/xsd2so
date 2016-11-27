@@ -30,7 +30,7 @@ namespace Xsd2So
             // Generate all SO types without their members, so that we have all required types available.
             foreach (DataRepresentation xsdType in ctx.XsdCodeMapping)
             {
-                var copiedType = CreateSoType(xsdType.CodeType, ctx);
+                CodeTypeDeclaration copiedType = CreateSoType(xsdType.CodeType, ctx);
                 xsdTypeNameToSoTypeDecl.Add(xsdType.CodeType.Name, copiedType);
 
                 if (copiedType.IsEnum)
@@ -63,38 +63,38 @@ namespace Xsd2So
         )
         {
             // create ToSerializable method for this xsdType
-            var toSerializableMethod = new CodeMemberMethod();
+            CodeMemberMethod toSerializableMethod = new CodeMemberMethod();
             toSerializableMethod.Name = SERIALIZABLE_METHOD_NAME;
             toSerializableMethod.Attributes = MemberAttributes.Public | MemberAttributes.Final;
             toSerializableMethod.ReturnType = new CodeTypeReference(typeof(void));
 
-            var paramType = ctx.ScriptableObjectCode.Name + "." + soType.Name;
-            var paramName = soType.Name.ToFirstLetterLowerCase();
-            var parameter = new CodeParameterDeclarationExpression(paramType, paramName);
+            string paramType = ctx.ScriptableObjectCode.Name + "." + soType.Name;
+            string paramName = soType.Name.ToFirstLetterLowerCase();
+            CodeParameterDeclarationExpression parameter = new CodeParameterDeclarationExpression(paramType, paramName);
             toSerializableMethod.Parameters.Add(parameter);
 
-            var xsdType = dataRepresentation.CodeType;
-            foreach (CodeTypeMember xsdMember in xsdType.Members)
+            CodeTypeDeclaration xsdCodeType = dataRepresentation.CodeType;
+            foreach (CodeTypeMember xsdMember in xsdCodeType.Members)
             {
                 if (xsdMember is CodeMemberProperty)
                 {
-                    var xsdProperty = xsdMember as CodeMemberProperty;
-                    var xsdPropertyType = xsdProperty.Type.BaseType;
+                    CodeMemberProperty xsdProperty = xsdMember as CodeMemberProperty;
+                    string xsdPropertyType = xsdProperty.Type.BaseType;
 
                     bool isXsdType = xsdTypeNameToSoTypeDecl.ContainsKey(xsdPropertyType);
 
                     CodeStatement transferStatement = null;
                     if (isXsdType)
                     {
-                        var xsdMemberType = ctx.XsdCodeMapping.First(ele => ele.CodeType.Name == xsdPropertyType);
+                        DataRepresentation xsdMemberType = ctx.XsdCodeMapping.First(ele => ele.CodeType.Name == xsdPropertyType);
                         if (xsdMemberType == null)
                         {
                             Debug.LogError("No Xsd Code mapping found for '" + xsdPropertyType + "'");
                             continue;
                         }
 
-                        var xsdMemberCodeDeclaration = xsdMemberType.CodeType;
-                        var targetSoTypeFQN = ctx.ScriptableObjectCode.Name + "." +
+                        CodeTypeDeclaration xsdMemberCodeDeclaration = xsdMemberType.CodeType;
+                        string targetSoTypeFQN = ctx.ScriptableObjectCode.Name + "." +
                                               xsdTypeNameToSoTypeDecl[xsdMemberCodeDeclaration.Name].Name;
                         if (xsdMemberCodeDeclaration.IsEnum) // handle enum members with Xsd types
                         {
@@ -116,6 +116,28 @@ namespace Xsd2So
                         {
                             if (xsdProperty.Type.ArrayRank == 0) // handle normal members with Xsd types
                             {
+                                XmlSchemaAnnotated xsdDef = dataRepresentation.XsdDefinition;
+                                XmlSchemaComplexType xsdComplexTypeDef = xsdDef as XmlSchemaComplexType;
+                                if (xsdComplexTypeDef.ContentTypeParticle is XmlSchemaGroupBase)
+                                {
+                                    XmlSchemaGroupBase groupContent = (XmlSchemaGroupBase) xsdComplexTypeDef.ContentTypeParticle;
+                                    foreach (XmlSchemaObject contentItem in groupContent.Items)
+                                    {
+                                        var contentEle = contentItem as XmlSchemaElement;
+                                        if (contentEle.Name == xsdMember.Name && contentEle.MinOccurs == 0)
+                                        {
+                                            Debug.LogWarning("possible empty element '"+contentEle.Name+"' found!");
+                                            // so we found a complex element that can be null.
+                                            // we need to wrap it up in some null check.
+                                            // or better: save this whole scan-check-act loop and unify it with the else
+                                            // branch ("it's an array") and only differ the content of the null-check.
+                                            // On the other hand we should generate a isSet flag for the non-array
+                                            // complex element...
+                                        }
+                                    }
+                                }
+
+
                                 // first, create a new object of the SO field, to prevent NPE
                                 toSerializableMethod.Statements.Add(new CodeAssignStatement(
                                         new CodePropertyReferenceExpression(
@@ -274,7 +296,7 @@ namespace Xsd2So
                 }
             }
 
-            xsdType.Members.Add(toSerializableMethod);
+            xsdCodeType.Members.Add(toSerializableMethod);
         }
 
         #endregion
@@ -315,7 +337,7 @@ namespace Xsd2So
                     {
                         if (attriArg.Value is CodePrimitiveExpression)
                         {
-                            var expr = attriArg.Value as CodePrimitiveExpression;
+                            CodePrimitiveExpression expr = attriArg.Value as CodePrimitiveExpression;
                             if (expr.Value is string && (string) expr.Value == context.Config.XmlRootNodeName)
                             {
                                 rootNameFound = true;
@@ -335,7 +357,7 @@ namespace Xsd2So
                 }
             }
 
-            var rootClass = CreateSoClass(xsdType);
+            CodeTypeDeclaration rootClass = CreateSoClass(xsdType);
             rootClass.Name += soClassPostfix;
             rootClass.CustomAttributes.Clear();
             rootClass.BaseTypes.Add(new CodeTypeReference(typeof(ScriptableObject)));
@@ -353,7 +375,7 @@ namespace Xsd2So
 
         private CodeTypeDeclaration CreateSoClass(CodeTypeDeclaration xsdType)
         {
-            var r = new CodeTypeDeclaration(xsdType.Name);
+            CodeTypeDeclaration r = new CodeTypeDeclaration(xsdType.Name);
             r.IsClass = true; // make it a class
             r.IsPartial = true; // make it a partial class
 
@@ -365,12 +387,12 @@ namespace Xsd2So
 
         private CodeTypeDeclaration CopyEnum(CodeTypeDeclaration codeType)
         {
-            var r = new CodeTypeDeclaration(codeType.Name);
+            CodeTypeDeclaration r = new CodeTypeDeclaration(codeType.Name);
             r.IsEnum = true;
 
             foreach (CodeMemberField member in codeType.Members)
             {
-                var enumVal = new CodeMemberField(member.Type, member.Name);
+                CodeMemberField enumVal = new CodeMemberField(member.Type, member.Name);
                 r.Members.Add(enumVal);
             }
 
@@ -387,15 +409,15 @@ namespace Xsd2So
                 {
                     if (member is CodeMemberField)
                     {
-                        var xsdMember = member as CodeMemberField;
+                        CodeMemberField xsdMember = member as CodeMemberField;
 
                         // TODO: This is a rather custom rework. Do we need this?
 
                         // Removes the number of XSD fields, e.g. "idField0" becomes "idField".
                         // The XmlSchema compiler adds the numbers to prevent name collision, because he
                         // sees the whole schema as one "block". I suppose.
-                        var memberName = RemoveFieldNumberPartOfName(xsdMember.Name);
-                        var xsdMemberType = xsdMember.Type.BaseType;
+                        string memberName = RemoveFieldNumberPartOfName(xsdMember.Name);
+                        string xsdMemberType = xsdMember.Type.BaseType;
 
                         CodeMemberField soMember = null;
                         CodeTypeDeclaration soMemberType;
@@ -432,7 +454,7 @@ namespace Xsd2So
 
         private string RemoveFieldNumberPartOfName(string name)
         {
-            var fieldPartIdx = name.IndexOf("Field", StringComparison.InvariantCulture);
+            int fieldPartIdx = name.IndexOf("Field", StringComparison.InvariantCulture);
             return name.Substring(0, fieldPartIdx);
         }
 
