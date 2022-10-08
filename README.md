@@ -14,7 +14,6 @@ The idea came from being unsatisfied by the performance (parsing times and file 
 
 ### How do I get set up? ###
 
-* Download the most recent [Unity package](https://bitbucket.org/Myrtanim/xsd2so/downloads) from this repository
 * Import the package in your project
 * create an editor script to use `xsd2So`, see [`ExampleConverter.ConvertFixedAsset1()`](https://github.com/Myrtanim/xsd2so/blob/master/Assets/Example/Editor/ExampleConverter.cs) for more details
 
