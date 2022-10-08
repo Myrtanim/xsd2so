@@ -4,7 +4,7 @@
 
 So this projects fuses [XML data binding](https://en.wikipedia.org/wiki/XML_data_binding) with Unity's native serialization capabilities.
 
-The idea came from being unsatisfied by the performance (parsing times and file size) of an existing XML-based workflow to handle balancing data for a commercial game. Changing the XML-based workflow was not an option because too many other tools and people were involved.
+The idea came from being unsatisfied by the performance (parsing times and file size) of an existing XML-based workflow, which handled balancing data for a commercial game. Changing the XML-based workflow was not an option because too many other tools and people were involved. To still tackle the problem, `xsd2so` was implemented as an automatic translation tool between both the XML-based workflow and Unity's native serialization capabilities.
 
 ### What is this repository for? ###
 
@@ -65,14 +65,20 @@ Some results are the following. The test machine is a PC with
 
 Each measurement was done 30 times and min/max/average values where calculated from `Stopwatch` data.
 
-# Small example (1.76kb XML vs 4.47kb SO, same data content) #
+#### Small example (1.76kb XML vs 4.47kb SO, same data content) #
 | Format |        min         |         max        |        avg         |
 | ------ | ------------------ | ------------------ | ------------------ |
 | XML    | `00:00:00.0017389` | `00:00:00.0136228` | `00:00:00.0022552` |
 | SO     | `00:00:00.0000866` | `00:00:00.0004697` | `00:00:00.0001085` |
 
-# Big example (5.24MB XML vs 1.45MB SO, same data content) #
+#### Big example (5.24MB XML vs 1.45MB SO, same data content) #
 | Format |        min         |         max        |        avg         |
 | ------ | ------------------ | ------------------ | ------------------ |
 | XML    | `00:00:01.4400673` | `00:00:01.4848626` | `00:00:01.4504397` |
 | SO     | `00:00:00.0000170` | `00:00:00.1129411` | `00:00:00.1057949` |
+
+### Notes
+
+This project was originally a Mercurial repository from another code repository hosting and was imported into GitHub.
+
+This project was tested only with the Unity 5.x version range. Newer Unity versions probably do not work, especially since Unity moved their own Mono implementation towards a standard .NET implementation. Mono has some specialities when it comes to code generation via `System.CodeDOM`.
