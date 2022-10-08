@@ -1,8 +1,10 @@
 # Xsd2So #
 
-This provides a tool to generate [Unity ScriptableObjects](http://docs.unity3d.com/Manual/class-ScriptableObject.html) (SO) from an XSD and also provides parsing capabilities, so you can easily parse the content of a matching XML into the SO.
+`xsd2so` provides a tool to generate [Unity ScriptableObject](http://docs.unity3d.com/Manual/class-ScriptableObject.html)s (SO) from an XSD and also provides parsing capabilities, so you can easily parse the content of a matching XML into the SO.
 
 So this projects fuses [XML data binding](https://en.wikipedia.org/wiki/XML_data_binding) with Unity's native serialization capabilities.
+
+The idea came from being unsatisfied by the performance (parsing times and file size) of an existing XML-based workflow to handle balancing data for a commercial game. Changing the XML-based workflow was not an option because too many other tools and people were involved.
 
 ### What is this repository for? ###
 
@@ -14,12 +16,15 @@ So this projects fuses [XML data binding](https://en.wikipedia.org/wiki/XML_data
 
 * Download the most recent [Unity package](https://bitbucket.org/Myrtanim/xsd2so/downloads) from this repository
 * Import the package in your project
-* create an editor script to use Xsd2So, see [`ExampleConverter.ConvertFixedAsset1()`](https://bitbucket.org/Myrtanim/xsd2so/src/ffd2c0d59dafabec3d26dc55010d2ceec0f91dbf/Assets/Example/Editor/ExampleConverter.cs?at=default&fileviewer=file-view-default) for more details
+* create an editor script to use `xsd2So`, see [`ExampleConverter.ConvertFixedAsset1()`](https://github.com/Myrtanim/xsd2so/blob/master/Assets/Example/Editor/ExampleConverter.cs) for more details
 
 or
 
 * clone the repository
-* open in Unity 5.3.4 or later
+* open in Unity 5.3.4 or any Unity 5.4.x
+
+**Hint**
+This tool has not been tested with any Unity 20xx versions and will probably not work, especially since the switch away from the custom Mono implementation.
 
 ### Contribution guidelines ###
 
@@ -31,24 +36,24 @@ Either
 
 or
 
-* create an [issue](https://bitbucket.org/Myrtanim/xsd2so/issues)
+* create an [issue](https://github.com/Myrtanim/xsd2so/issues)
 
 **If you found a bug:**
 
-Please create an [issue](https://bitbucket.org/Myrtanim/xsd2so/issues) with a minimal example XSD/XML and a description of the issue.
+Please create an [issue](https://github.com/Myrtanim/xsd2so/issues) with a minimal example XSD/XML and a description of the issue.
 
 I try to answer it as soon as possible, but it can still take a while.
 
 ### Who do I talk to? ###
 
-* [Myrtanim](https://bitbucket.org/Myrtanim/)
+* [Myrtanim](https://github.com/Myrtanim/)
 
 ### License ###
 
-Xsd2So is released under an MIT/X11 license; see the LICENSE file.
+`xsd2So` is released under an MIT/X11 license; see the LICENSE file.
 
 ### Performance measurements ###
-This whole project has the main intention to utilize the performance-optimized deserialization from Unity.
+This whole project has the main intention to utilize the performance-optimized deserialization from Unity while not changing an existing XML-based workflow.
 To proof that the whole thing is worth it, this repo contains some loading time tests, see the XSD menu of this project in Unity.
 
 Some results are the following. The test machine is a PC with
