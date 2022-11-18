@@ -41,12 +41,6 @@ or
 
 Please create an [issue](https://github.com/Myrtanim/xsd2so/issues) with a minimal example XSD/XML and a description of the issue.
 
-I try to answer it as soon as possible, but it can still take a while.
-
-### Who do I talk to? ###
-
-* [Myrtanim](https://github.com/Myrtanim/)
-
 ### License ###
 
 `xsd2So` is released under an MIT/X11 license; see the LICENSE file.
